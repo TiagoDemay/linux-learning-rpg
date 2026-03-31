@@ -1,0 +1,14 @@
+{
+  "query": "CREATE TABLE `user_progress` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`coins` int NOT NULL DEFAULT 0,\n\t`unlockedLevels` json NOT NULL DEFAULT ('[\"floresta-stallman\"]'),\n\t`completedLevels` json NOT NULL DEFAULT ('[]'),\n\t`currentLevel` varchar(64) NOT NULL DEFAULT 'floresta-stallman',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `user_progress_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3FCZ88WJFcZi16n.root --database TSiRdqLfDbHcFkVjrjk85H --execute CREATE TABLE `user_progress` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`coins` int NOT NULL DEFAULT 0,\n\t`unlockedLevels` json NOT NULL DEFAULT ('[\"floresta-stallman\"]'),\n\t`completedLevels` json NOT NULL DEFAULT ('[]'),\n\t`currentLevel` varchar(64) NOT NULL DEFAULT 'floresta-stallman',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `user_progress_id` PRIMARY KEY(`id`)\n);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 5 column 65 near \"'[\"floresta-stallman\"]'),",
+    "\t`completedLevels` json NOT NULL DEFAULT ('[]'),",
+    "\t`currentLevel` varchar(64) NOT NULL DEFAULT 'floresta-stallman',",
+    "\t`createdAt` timestamp NOT NULL DEFAULT (now()),",
+    "\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,",
+    "\tCONSTRAINT `user_progress_id` PRIMARY KEY(`id`)",
+    ")\""
+  ]
+}
