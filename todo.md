@@ -47,3 +47,7 @@
 ## Testes
 - [x] Testes do motor de terminal (31 testes passando)
 - [x] Testes de validação de tarefas
+
+## Atualização de Fundo
+- [x] Upload da imagem do mapa para CDN
+- [x] Substituir fundo CSS por imagem real no RPGMap.tsx

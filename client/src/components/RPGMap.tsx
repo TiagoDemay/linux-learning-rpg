@@ -11,23 +11,6 @@ interface RPGMapProps {
   onUnlockLevel: (level: Level) => void;
 }
 
-// Decorative animated elements
-const SHIPS = [
-  { x: 68, y: 60, delay: 0 },
-  { x: 74, y: 68, delay: 1.5 },
-];
-const WAVES = [
-  { x: 55, y: 58, delay: 0 },
-  { x: 65, y: 65, delay: 0.8 },
-  { x: 75, y: 72, delay: 1.6 },
-  { x: 58, y: 75, delay: 0.4 },
-];
-const SEA_CREATURES = [
-  { x: 52, y: 70, type: "octopus", delay: 0 },
-  { x: 70, y: 80, type: "serpent", delay: 1 },
-  { x: 80, y: 62, type: "serpent", delay: 2 },
-];
-
 // SVG path connections between levels
 const CONNECTIONS = [
   ["floresta-stallman", "tundra-slackware"],
@@ -87,115 +70,16 @@ export default function RPGMap({
 
   return (
     <div className="relative w-full" style={{ aspectRatio: "16/9", maxHeight: "calc(100vh - 80px)" }}>
-      {/* Parchment background */}
+      {/* Real map image background */}
       <div
         className="absolute inset-0 rounded-lg overflow-hidden"
         style={{
-          background: `
-            radial-gradient(ellipse at 20% 20%, #f5e6c8 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 80%, #e8d5a3 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 50%, #f0deb4 0%, #d4b896 100%)
-          `,
+          backgroundImage: `url("https://d2xsxph8kpxj0f.cloudfront.net/310519663063764281/TSiRdqLfDbHcFkVjrjk85H/mapa_rpg_linux4k_aa25ec90.webp")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
         }}
       >
-        {/* Parchment texture overlay */}
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E")`,
-          }}
-        />
-
-        {/* Aged spots */}
-        <div className="absolute top-8 left-16 w-24 h-16 rounded-full opacity-10" style={{ background: "#8b6914" }} />
-        <div className="absolute bottom-12 right-20 w-32 h-20 rounded-full opacity-10" style={{ background: "#6b4c0a" }} />
-        <div className="absolute top-1/3 right-1/4 w-16 h-12 rounded-full opacity-8" style={{ background: "#7a5c1e" }} />
-
-        {/* ── BIOME REGIONS ── */}
-        {/* Forest region - top left */}
-        <div className="absolute" style={{ left: "2%", top: "5%", width: "28%", height: "38%", background: "radial-gradient(ellipse, rgba(45,90,39,0.25) 0%, transparent 70%)", borderRadius: "60% 40% 50% 60%" }} />
-        {/* Tundra - top center */}
-        <div className="absolute" style={{ left: "28%", top: "2%", width: "30%", height: "32%", background: "radial-gradient(ellipse, rgba(168,216,234,0.3) 0%, transparent 70%)", borderRadius: "40% 60% 40% 50%" }} />
-        {/* Mountains - top right */}
-        <div className="absolute" style={{ left: "62%", top: "3%", width: "36%", height: "40%", background: "radial-gradient(ellipse, rgba(107,107,107,0.2) 0%, transparent 70%)", borderRadius: "50% 40% 60% 40%" }} />
-        {/* Swamp - left */}
-        <div className="absolute" style={{ left: "2%", top: "38%", width: "26%", height: "35%", background: "radial-gradient(ellipse, rgba(74,82,64,0.3) 0%, transparent 70%)", borderRadius: "40% 60% 50% 40%" }} />
-        {/* Kingdom - center */}
-        <div className="absolute" style={{ left: "30%", top: "25%", width: "32%", height: "40%", background: "radial-gradient(ellipse, rgba(139,69,19,0.15) 0%, transparent 70%)", borderRadius: "50%" }} />
-        {/* Plains - right */}
-        <div className="absolute" style={{ left: "68%", top: "28%", width: "30%", height: "35%", background: "radial-gradient(ellipse, rgba(192,57,43,0.15) 0%, transparent 70%)", borderRadius: "40% 60% 50% 40%" }} />
-        {/* Desert - center-bottom */}
-        <div className="absolute" style={{ left: "18%", top: "52%", width: "32%", height: "32%", background: "radial-gradient(ellipse, rgba(212,160,23,0.25) 0%, transparent 70%)", borderRadius: "50% 40% 60% 40%" }} />
-        {/* Ocean - bottom */}
-        <div className="absolute" style={{ left: "42%", top: "50%", width: "56%", height: "48%", background: "radial-gradient(ellipse, rgba(26,82,118,0.2) 0%, rgba(52,152,219,0.15) 60%, transparent 100%)", borderRadius: "40% 60% 40% 60%" }} />
-
-        {/* ── OCEAN WAVES ── */}
-        {WAVES.map((w, i) => (
-          <div
-            key={i}
-            className="absolute text-blue-400 opacity-40 select-none"
-            style={{
-              left: `${w.x}%`,
-              top: `${w.y}%`,
-              fontSize: "1.2rem",
-              animation: `wave ${2 + w.delay}s ease-in-out infinite`,
-              animationDelay: `${w.delay}s`,
-            }}
-          >
-            〰
-          </div>
-        ))}
-
-        {/* ── SHIPS ── */}
-        {SHIPS.map((s, i) => (
-          <div
-            key={i}
-            className="absolute select-none"
-            style={{
-              left: `${s.x}%`,
-              top: `${s.y}%`,
-              fontSize: "1.6rem",
-              animation: `sail ${4 + s.delay}s ease-in-out infinite`,
-              animationDelay: `${s.delay}s`,
-              filter: "drop-shadow(1px 1px 2px rgba(0,0,0,0.3))",
-            }}
-          >
-            ⛵
-          </div>
-        ))}
-
-        {/* ── SEA CREATURES ── */}
-        {SEA_CREATURES.map((c, i) => (
-          <div
-            key={i}
-            className="absolute select-none opacity-60"
-            style={{
-              left: `${c.x}%`,
-              top: `${c.y}%`,
-              fontSize: c.type === "octopus" ? "1.8rem" : "1.4rem",
-              animation: `float ${3 + c.delay}s ease-in-out infinite`,
-              animationDelay: `${c.delay}s`,
-            }}
-          >
-            {c.type === "octopus" ? "🐙" : "🐍"}
-          </div>
-        ))}
-
-        {/* ── TUX PENGUIN (mascot) ── */}
-        <div
-          className="absolute select-none"
-          style={{
-            left: "44%",
-            top: "52%",
-            fontSize: "2.2rem",
-            animation: "tuxBob 2s ease-in-out infinite",
-            filter: "drop-shadow(2px 2px 4px rgba(0,0,0,0.4))",
-            zIndex: 5,
-          }}
-        >
-          🐧
-        </div>
-
         {/* ── CONNECTION PATHS (SVG) ── */}
         <svg
           className="absolute inset-0 w-full h-full"
@@ -340,14 +224,14 @@ export default function RPGMap({
                   marginTop: "4px",
                   fontFamily: "'MedievalSharp', serif",
                   fontSize: "0.55rem",
-                  color: style.textColor,
-                  textShadow: "1px 1px 2px rgba(255,255,255,0.8), -1px -1px 2px rgba(255,255,255,0.8)",
+                  textShadow: "1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9)",
                   maxWidth: "80px",
                   lineHeight: 1.2,
-                  background: "rgba(240,222,180,0.7)",
-                  padding: "1px 4px",
-                  borderRadius: "3px",
-                  border: "1px solid rgba(139,105,20,0.3)",
+                  background: "rgba(30,15,5,0.75)",
+                  padding: "2px 5px",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(200,160,40,0.6)",
+                  color: "#f5e6c8",
                 }}
               >
                 {level.name}
@@ -430,110 +314,9 @@ export default function RPGMap({
           </div>
         ))}
 
-        {/* ── COMPASS ROSE ── */}
-        <div
-          className="absolute select-none"
-          style={{
-            left: "3%",
-            bottom: "8%",
-            width: "80px",
-            height: "80px",
-            zIndex: 15,
-          }}
-        >
-          <svg viewBox="0 0 100 100" className="w-full h-full">
-            {/* Outer circle */}
-            <circle cx="50" cy="50" r="48" fill="rgba(240,222,180,0.9)" stroke="#8b6914" strokeWidth="2" />
-            <circle cx="50" cy="50" r="42" fill="none" stroke="#8b6914" strokeWidth="0.5" />
-            {/* Cardinal directions */}
-            <polygon points="50,5 45,45 55,45" fill="#c0392b" />
-            <polygon points="50,95 45,55 55,55" fill="#3d2b1f" />
-            <polygon points="5,50 45,45 45,55" fill="#3d2b1f" />
-            <polygon points="95,50 55,45 55,55" fill="#3d2b1f" />
-            {/* Center */}
-            <circle cx="50" cy="50" r="5" fill="#8b6914" />
-            {/* Labels */}
-            <text x="50" y="18" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#c0392b" fontFamily="serif">N</text>
-            <text x="50" y="90" textAnchor="middle" fontSize="10" fill="#3d2b1f" fontFamily="serif">S</text>
-            <text x="12" y="54" textAnchor="middle" fontSize="10" fill="#3d2b1f" fontFamily="serif">W</text>
-            <text x="88" y="54" textAnchor="middle" fontSize="10" fill="#3d2b1f" fontFamily="serif">E</text>
-          </svg>
-        </div>
-
-        {/* ── TITLE BANNER ── */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 z-20"
-          style={{ width: "55%", textAlign: "center" }}
-        >
-          <div
-            style={{
-              background: "linear-gradient(135deg, #5c3d1e 0%, #8b6914 30%, #c9a227 50%, #8b6914 70%, #5c3d1e 100%)",
-              border: "3px solid #3d2b1f",
-              borderTop: "none",
-              borderRadius: "0 0 12px 12px",
-              padding: "6px 24px 10px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
-              position: "relative",
-            }}
-          >
-            {/* Ribbon ends */}
-            <div className="absolute -left-3 top-2 w-3 h-4" style={{ background: "#3d2b1f", clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 70%)" }} />
-            <div className="absolute -right-3 top-2 w-3 h-4" style={{ background: "#3d2b1f", clipPath: "polygon(0 0, 100% 0, 50% 70%, 0 100%)" }} />
-            <div
-              style={{
-                fontFamily: "'MedievalSharp', serif",
-                fontSize: "clamp(0.7rem, 1.8vw, 1.1rem)",
-                color: "#f5e6c8",
-                textShadow: "1px 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(255,200,50,0.3)",
-                letterSpacing: "0.05em",
-                whiteSpace: "nowrap",
-              }}
-            >
-              ⚔ MAPA MUNDI: TERRAS DO KERNEL ⚔
-            </div>
-          </div>
-        </div>
-
-        {/* ── DECORATIVE BORDER ── */}
-        <div
-          className="absolute inset-0 pointer-events-none rounded-lg"
-          style={{
-            border: "8px solid transparent",
-            borderImage: "linear-gradient(45deg, #5c3d1e, #8b6914, #c9a227, #8b6914, #5c3d1e) 1",
-            boxShadow: "inset 0 0 0 2px rgba(139,105,20,0.5), 0 0 0 2px rgba(139,105,20,0.3)",
-          }}
-        />
-        {/* Corner decorations */}
-        {["top-1 left-1", "top-1 right-1", "bottom-1 left-1", "bottom-1 right-1"].map((pos, i) => (
-          <div
-            key={i}
-            className={`absolute ${pos} w-10 h-10 pointer-events-none`}
-            style={{
-              background: "radial-gradient(circle, #c9a227 0%, #8b6914 50%, transparent 70%)",
-              opacity: 0.6,
-              borderRadius: i < 2 ? (i === 0 ? "0 0 100% 0" : "0 0 0 100%") : (i === 2 ? "0 100% 0 0" : "100% 0 0 0"),
-            }}
-          />
-        ))}
       </div>
 
       <style>{`
-        @keyframes wave {
-          0%, 100% { transform: scaleX(1) translateY(0); }
-          50% { transform: scaleX(1.2) translateY(-2px); }
-        }
-        @keyframes sail {
-          0%, 100% { transform: translateX(0) rotate(-2deg); }
-          50% { transform: translateX(8px) rotate(2deg); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(-5deg); }
-          50% { transform: translateY(-6px) rotate(5deg); }
-        }
-        @keyframes tuxBob {
-          0%, 100% { transform: translateY(0) rotate(-3deg); }
-          50% { transform: translateY(-4px) rotate(3deg); }
-        }
         @keyframes pulse-ring {
           0% { transform: scale(1); opacity: 1; }
           100% { transform: scale(1.6); opacity: 0; }
