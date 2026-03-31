@@ -51,3 +51,10 @@
 ## Atualização de Fundo
 - [x] Upload da imagem do mapa para CDN
 - [x] Substituir fundo CSS por imagem real no RPGMap.tsx
+
+## Desafios da Floresta de Stallman (10 missões)
+- [x] Redesenhar Task para suportar múltiplos desafios por nível (array de sub-tarefas)
+- [x] Criar 10 desafios progressivos cobrindo os 20 comandos Linux
+- [x] Atualizar Terminal.tsx para progressão entre sub-tarefas
+- [x] Atualizar Home.tsx para rastrear sub-tarefa atual por nível
+- [x] Testes dos novos desafios (54 testes passando)

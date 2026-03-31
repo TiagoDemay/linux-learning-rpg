@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { executeCommand, getPrompt, type VFSState } from "../lib/terminal-logic";
-import { getTaskByLevel } from "../data/tasks";
+import { getLevelTaskGroup, getChallenge, getChallengeCount } from "../data/tasks";
 import { getLevelById } from "../data/levels";
 
 interface TerminalLine {
@@ -14,8 +14,18 @@ interface TerminalProps {
   currentLevel: string;
   vfs: VFSState;
   onVFSChange: (newVFS: VFSState) => void;
+  /** Legado: chamado quando nível tem 1 único desafio */
   onTaskComplete: (levelId: string, reward: number) => void;
+  /** Novo: chamado para cada sub-tarefa concluída */
+  onChallengeComplete: (
+    levelId: string,
+    challengeIndex: number,
+    reward: number,
+    isLastChallenge: boolean
+  ) => void;
   completedLevels: string[];
+  /** Índice do próximo desafio a ser feito por nível */
+  challengeProgress: Record<string, number>;
   onBackToMap: () => void;
 }
 
@@ -24,27 +34,25 @@ export default function Terminal({
   vfs,
   onVFSChange,
   onTaskComplete,
+  onChallengeComplete,
   completedLevels,
+  challengeProgress,
   onBackToMap,
 }: TerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([]);
   const [input, setInput] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [lineId, setLineId] = useState(0);
-  const [taskJustCompleted, setTaskJustCompleted] = useState(false);
   const [sparkles, setSparkles] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const level = getLevelById(currentLevel);
-  const task = getTaskByLevel(currentLevel);
-  const isTaskDone = completedLevels.includes(currentLevel);
-
-  const nextId = useCallback(() => {
-    setLineId((prev) => prev + 1);
-    return lineId + 1;
-  }, [lineId]);
+  const taskGroup = getLevelTaskGroup(currentLevel);
+  const totalChallenges = getChallengeCount(currentLevel);
+  const currentChallengeIndex = challengeProgress[currentLevel] ?? 0;
+  const currentChallenge = getChallenge(currentLevel, currentChallengeIndex);
+  const isLevelDone = completedLevels.includes(currentLevel);
 
   const addLine = useCallback(
     (type: TerminalLine["type"], content: string, prompt?: string) => {
@@ -61,19 +69,25 @@ export default function Terminal({
     setLines([]);
     setCommandHistory([]);
     if (!level) return;
+
+    const progressLabel =
+      totalChallenges > 1
+        ? ` (${Math.min(currentChallengeIndex, totalChallenges)}/${totalChallenges} desafios)`
+        : "";
+
     const welcome = [
       `╔══════════════════════════════════════════════════════╗`,
       `║     Ubuntu 24.04 LTS - Terras do Kernel              ║`,
       `║     ${level.icon} ${level.name.padEnd(46)}║`,
       `╚══════════════════════════════════════════════════════╝`,
       ``,
-      `Bem-vindo, aventureiro! Você chegou a: ${level.name}`,
+      `Bem-vindo, aventureiro! Você chegou a: ${level.name}${progressLabel}`,
       `${level.description}`,
       ``,
-      isTaskDone
-        ? `✅ Missão já concluída! Explore à vontade ou volte ao mapa.`
-        : task
-        ? `📜 MISSÃO: ${task.title}\n   ${task.description}`
+      isLevelDone
+        ? `✅ Todos os desafios concluídos! Explore à vontade ou volte ao mapa.`
+        : currentChallenge
+        ? `📜 DESAFIO ${currentChallengeIndex + 1}/${totalChallenges}: ${currentChallenge.title}\n   ${currentChallenge.description}`
         : `Explore este território livremente.`,
       ``,
       `Digite 'help' para ver os comandos disponíveis.`,
@@ -103,6 +117,15 @@ export default function Terminal({
       setHistoryIndex(-1);
       setInput("");
 
+      // Simulate ps / top / sudo / apt / less / nano locally
+      const simulated = simulateExtraCommands(cmd);
+      if (simulated !== null) {
+        simulated.split("\n").forEach((line) => addLine("output", line));
+        // ps/top/sudo/apt don't change VFS — just check task completion
+        checkChallengeCompletion(cmd, vfs, [cmd, ...commandHistory]);
+        return;
+      }
+
       const result = executeCommand(cmd, vfs);
 
       if (result.output === "\x1b[CLEAR]") {
@@ -119,28 +142,53 @@ export default function Terminal({
       }
 
       onVFSChange(result.newState);
+      checkChallengeCompletion(cmd, result.newState, [cmd, ...commandHistory]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [input, vfs, currentChallenge, isLevelDone, commandHistory, currentLevel, currentChallengeIndex, totalChallenges]
+  );
 
-      // Check task completion
-      if (task && !isTaskDone && !taskJustCompleted) {
-        const allCmds = [cmd, ...commandHistory];
-        const taskDone = task.validate(result.newState, allCmds);
-        if (taskDone) {
-          setTaskJustCompleted(true);
-          setSparkles(true);
-          setTimeout(() => setSparkles(false), 3000);
-          addLine("success", "");
-          addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
-          addLine("success", `🎉 MISSÃO CONCLUÍDA: ${task.title}!`);
-          addLine("success", `🪙 Você ganhou ${task.reward} moedas!`);
-          addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
-          addLine("success", "");
-          setTimeout(() => {
-            onTaskComplete(currentLevel, task.reward);
-          }, 500);
+  const checkChallengeCompletion = useCallback(
+    (cmd: string, newVfs: VFSState, allCmds: string[]) => {
+      if (isLevelDone || !currentChallenge) return;
+
+      const done = currentChallenge.validate(newVfs, allCmds);
+      if (!done) return;
+
+      const isLast = currentChallengeIndex === totalChallenges - 1;
+
+      setSparkles(true);
+      setTimeout(() => setSparkles(false), 3000);
+
+      addLine("success", "");
+      addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
+      addLine("success", `🎉 DESAFIO ${currentChallengeIndex + 1} CONCLUÍDO: ${currentChallenge.title}!`);
+      addLine("success", `🪙 +${currentChallenge.reward} moedas!`);
+
+      if (isLast) {
+        addLine("success", `🏆 TODOS OS DESAFIOS DE ${level?.name?.toUpperCase()} COMPLETOS!`);
+        addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
+      } else {
+        const next = getChallenge(currentLevel, currentChallengeIndex + 1);
+        addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
+        addLine("success", "");
+        if (next) {
+          addLine("system", `📜 PRÓXIMO DESAFIO ${currentChallengeIndex + 2}/${totalChallenges}: ${next.title}`);
+          addLine("system", `   ${next.description}`);
+          addLine("system", `   💡 Dica: ${next.hint}`);
         }
       }
+      addLine("success", "");
+
+      setTimeout(() => {
+        onChallengeComplete(currentLevel, currentChallengeIndex, currentChallenge.reward, isLast);
+        if (isLast) {
+          onTaskComplete(currentLevel, 0); // notifica legado com reward 0 (já somado acima)
+        }
+      }, 400);
     },
-    [input, vfs, task, isTaskDone, taskJustCompleted, commandHistory, currentLevel, addLine, onVFSChange, onTaskComplete]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentChallenge, isLevelDone, currentChallengeIndex, totalChallenges, currentLevel, level]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -156,8 +204,12 @@ export default function Terminal({
       setInput(newIndex === -1 ? "" : commandHistory[newIndex] || "");
     } else if (e.key === "Tab") {
       e.preventDefault();
-      // Simple tab completion
-      const cmds = ["ls", "cd", "mkdir", "touch", "echo", "cat", "rm", "cp", "mv", "pwd", "chmod", "man", "help", "clear", "whoami", "uname", "date"];
+      const cmds = [
+        "ls", "cd", "mkdir", "touch", "echo", "cat", "rm", "cp", "mv",
+        "pwd", "chmod", "chown", "man", "help", "clear", "whoami", "uname",
+        "date", "grep", "find", "ps", "top", "sudo", "apt", "less", "nano",
+        "rmdir",
+      ];
       const match = cmds.find((c) => c.startsWith(input));
       if (match) setInput(match + " ");
     }
@@ -173,6 +225,14 @@ export default function Terminal({
       default: return "#e8e8e8";
     }
   };
+
+  // Progress bar for multi-challenge levels
+  const progressPct =
+    totalChallenges > 1
+      ? Math.round((Math.min(currentChallengeIndex, totalChallenges) / totalChallenges) * 100)
+      : isLevelDone
+      ? 100
+      : 0;
 
   return (
     <div className="flex flex-col h-full" style={{ fontFamily: "'Courier New', monospace" }}>
@@ -202,19 +262,33 @@ export default function Terminal({
             {level?.icon} {level?.name}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ background: "#ff5f57", boxShadow: "0 0 4px #ff5f57" }}
-          />
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ background: "#febc2e", boxShadow: "0 0 4px #febc2e" }}
-          />
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ background: "#28c840", boxShadow: "0 0 4px #28c840" }}
-          />
+        <div className="flex items-center gap-3">
+          {totalChallenges > 1 && (
+            <div className="flex items-center gap-2">
+              <span style={{ color: "#8b6914", fontSize: "0.65rem" }}>
+                {Math.min(currentChallengeIndex, totalChallenges)}/{totalChallenges}
+              </span>
+              <div
+                className="rounded-full overflow-hidden"
+                style={{ width: "80px", height: "6px", background: "rgba(139,105,20,0.3)" }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${progressPct}%`,
+                    background: isLevelDone
+                      ? "linear-gradient(90deg, #27ae60, #2ecc71)"
+                      : "linear-gradient(90deg, #8b6914, #c9a227)",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: "#ff5f57", boxShadow: "0 0 4px #ff5f57" }} />
+            <div className="w-3 h-3 rounded-full" style={{ background: "#febc2e", boxShadow: "0 0 4px #febc2e" }} />
+            <div className="w-3 h-3 rounded-full" style={{ background: "#28c840", boxShadow: "0 0 4px #28c840" }} />
+          </div>
         </div>
       </div>
 
@@ -291,88 +365,120 @@ export default function Terminal({
         <div
           className="flex-shrink-0 overflow-y-auto p-4"
           style={{
-            width: "260px",
+            width: "270px",
             background: "linear-gradient(180deg, #1a0f0a 0%, #2c1810 100%)",
             borderLeft: "2px solid #8b6914",
           }}
         >
-          {task ? (
-            <>
+          {/* Challenge progress dots */}
+          {totalChallenges > 1 && (
+            <div className="mb-3">
               <div
-                className="font-bold mb-3 pb-2"
+                className="font-bold mb-2 pb-1"
                 style={{
                   fontFamily: "'MedievalSharp', serif",
                   color: "#c9a227",
-                  fontSize: "0.8rem",
+                  fontSize: "0.75rem",
                   borderBottom: "1px solid #8b6914",
                 }}
               >
-                📜 Missão Atual
+                ⚔ Progresso ({Math.min(currentChallengeIndex, totalChallenges)}/{totalChallenges})
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {Array.from({ length: totalChallenges }).map((_, i) => {
+                  const done = i < currentChallengeIndex;
+                  const active = i === currentChallengeIndex && !isLevelDone;
+                  return (
+                    <div
+                      key={i}
+                      title={`Desafio ${i + 1}`}
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{
+                        background: done
+                          ? "#27ae60"
+                          : active
+                          ? "#c9a227"
+                          : "rgba(139,105,20,0.2)",
+                        border: active ? "2px solid #f5c842" : "1px solid rgba(139,105,20,0.4)",
+                        color: done || active ? "#fff" : "#6b5040",
+                        fontSize: "0.5rem",
+                      }}
+                    >
+                      {done ? "✓" : i + 1}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {isLevelDone ? (
+            <div
+              className="rounded-lg p-3 text-center mb-3"
+              style={{ background: "rgba(39,174,96,0.2)", border: "1px solid #27ae60" }}
+            >
+              <div className="text-2xl mb-2">🏆</div>
+              <div style={{ color: "#27ae60", fontWeight: "bold", fontSize: "0.8rem" }}>
+                {totalChallenges > 1 ? "Todos os Desafios Concluídos!" : "Missão Concluída!"}
+              </div>
+            </div>
+          ) : currentChallenge ? (
+            <>
+              <div
+                className="font-bold mb-1"
+                style={{
+                  fontFamily: "'MedievalSharp', serif",
+                  color: "#c9a227",
+                  fontSize: "0.75rem",
+                  borderBottom: "1px solid #8b6914",
+                  paddingBottom: "4px",
+                  marginBottom: "8px",
+                }}
+              >
+                📜 Desafio {currentChallengeIndex + 1}
+              </div>
+              <div className="font-bold mb-2" style={{ color: "#f5c842", fontSize: "0.78rem" }}>
+                {currentChallenge.title}
+              </div>
+              <div className="mb-4 leading-relaxed" style={{ color: "#d4b896", fontSize: "0.72rem" }}>
+                {currentChallenge.description}
               </div>
 
-              {isTaskDone ? (
-                <div
-                  className="rounded-lg p-3 text-center"
-                  style={{ background: "rgba(39,174,96,0.2)", border: "1px solid #27ae60" }}
-                >
-                  <div className="text-2xl mb-2">✅</div>
-                  <div style={{ color: "#27ae60", fontWeight: "bold", fontSize: "0.8rem" }}>
-                    Missão Concluída!
-                  </div>
-                  <div style={{ color: "#a8d8a8", fontSize: "0.7rem", marginTop: "4px" }}>
-                    +{task.reward} moedas ganhas
-                  </div>
+              <div
+                className="rounded p-2 mb-3"
+                style={{ background: "rgba(139,105,20,0.2)", border: "1px solid #8b6914" }}
+              >
+                <div style={{ color: "#c9a227", fontSize: "0.65rem", fontWeight: "bold", marginBottom: "4px" }}>
+                  💡 Dica:
                 </div>
-              ) : (
-                <>
-                  <div
-                    className="font-bold mb-2"
-                    style={{ color: "#f5c842", fontSize: "0.8rem" }}
-                  >
-                    {task.title}
-                  </div>
-                  <div
-                    className="mb-4 leading-relaxed"
-                    style={{ color: "#d4b896", fontSize: "0.72rem" }}
-                  >
-                    {task.description}
-                  </div>
+                <code style={{ color: "#a8ff78", fontSize: "0.68rem", whiteSpace: "pre-wrap" }}>
+                  {currentChallenge.hint}
+                </code>
+              </div>
 
-                  <div
-                    className="rounded p-2 mb-3"
-                    style={{ background: "rgba(139,105,20,0.2)", border: "1px solid #8b6914" }}
-                  >
-                    <div style={{ color: "#c9a227", fontSize: "0.65rem", fontWeight: "bold", marginBottom: "4px" }}>
-                      💡 Dica:
-                    </div>
-                    <code style={{ color: "#a8ff78", fontSize: "0.7rem" }}>{task.hint}</code>
-                  </div>
+              <div
+                className="rounded p-2 mb-3"
+                style={{ background: "rgba(39,174,96,0.1)", border: "1px solid rgba(39,174,96,0.3)" }}
+              >
+                <div style={{ color: "#27ae60", fontSize: "0.65rem", fontWeight: "bold" }}>
+                  🪙 Recompensa: {currentChallenge.reward} moedas
+                </div>
+              </div>
 
-                  <div
-                    className="rounded p-2"
-                    style={{ background: "rgba(39,174,96,0.1)", border: "1px solid rgba(39,174,96,0.3)" }}
-                  >
-                    <div style={{ color: "#27ae60", fontSize: "0.65rem", fontWeight: "bold" }}>
-                      🪙 Recompensa: {task.reward} moedas
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className="mt-4">
+              <div className="mb-3">
                 <div
                   className="font-bold mb-2"
                   style={{
                     fontFamily: "'MedievalSharp', serif",
                     color: "#c9a227",
-                    fontSize: "0.75rem",
+                    fontSize: "0.72rem",
                     borderBottom: "1px solid #8b6914",
                     paddingBottom: "4px",
                   }}
                 >
-                  ⚔ Comandos Úteis
+                  ⚔ Comandos do Desafio
                 </div>
-                {task.commands.map((cmd) => (
+                {currentChallenge.commands.map((cmd) => (
                   <div
                     key={cmd}
                     className="mb-1 cursor-pointer hover:opacity-80 transition-opacity"
@@ -381,7 +487,11 @@ export default function Terminal({
                   >
                     <code
                       className="px-2 py-0.5 rounded text-xs"
-                      style={{ background: "rgba(168,255,120,0.1)", color: "#a8ff78", border: "1px solid rgba(168,255,120,0.2)" }}
+                      style={{
+                        background: "rgba(168,255,120,0.1)",
+                        color: "#a8ff78",
+                        border: "1px solid rgba(168,255,120,0.2)",
+                      }}
                     >
                       {cmd}
                     </code>
@@ -395,14 +505,14 @@ export default function Terminal({
             </div>
           )}
 
-          {/* Quick commands reference */}
-          <div className="mt-4">
+          {/* Quick reference */}
+          <div className="mt-2">
             <div
               className="font-bold mb-2"
               style={{
                 fontFamily: "'MedievalSharp', serif",
                 color: "#8b6914",
-                fontSize: "0.7rem",
+                fontSize: "0.68rem",
                 borderBottom: "1px solid rgba(139,105,20,0.4)",
                 paddingBottom: "4px",
               }}
@@ -413,21 +523,29 @@ export default function Terminal({
               ["pwd", "diretório atual"],
               ["ls -la", "listar arquivos"],
               ["mkdir nome", "criar pasta"],
+              ["rmdir nome", "remover pasta vazia"],
               ["touch arq", "criar arquivo"],
               ["cat arq", "ler arquivo"],
+              ["grep txt arq", "buscar texto"],
+              ["find . -name arq", "localizar arquivo"],
               ["rm arq", "remover arquivo"],
-              ["cd pasta", "entrar na pasta"],
-              ["echo txt > arq", "escrever arquivo"],
+              ["cp a b", "copiar arquivo"],
+              ["mv a b", "mover/renomear"],
+              ["chmod +x arq", "tornar executável"],
+              ["ps", "listar processos"],
+              ["top", "monitor de recursos"],
+              ["sudo cmd", "executar como root"],
+              ["apt list", "listar pacotes"],
             ].map(([cmd, desc]) => (
               <div key={cmd} className="flex justify-between items-center mb-1">
                 <code
                   className="cursor-pointer hover:opacity-80"
-                  style={{ color: "#a8ff78", fontSize: "0.6rem" }}
+                  style={{ color: "#a8ff78", fontSize: "0.58rem" }}
                   onClick={() => setInput(cmd.split(" ")[0] + " ")}
                 >
                   {cmd}
                 </code>
-                <span style={{ color: "#6b5040", fontSize: "0.58rem" }}>{desc}</span>
+                <span style={{ color: "#6b5040", fontSize: "0.56rem" }}>{desc}</span>
               </div>
             ))}
           </div>
@@ -443,4 +561,119 @@ export default function Terminal({
       `}</style>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────
+//  Simula comandos que não alteram o VFS mas têm output
+// ─────────────────────────────────────────────────────────
+function simulateExtraCommands(cmd: string): string | null {
+  const parts = cmd.trim().split(/\s+/);
+  const base = parts[0];
+
+  if (base === "ps") {
+    return [
+      "  PID TTY          TIME CMD",
+      "    1 ?        00:00:01 systemd",
+      "  423 ?        00:00:00 sshd",
+      "  891 pts/0    00:00:00 bash",
+      "  892 pts/0    00:00:00 ps",
+    ].join("\n");
+  }
+
+  if (base === "top") {
+    return [
+      "top - 12:00:00 up 1 day,  3:42,  1 user,  load average: 0.01, 0.05, 0.02",
+      "Tasks:  89 total,   1 running,  88 sleeping,   0 stopped,   0 zombie",
+      "%Cpu(s):  0.3 us,  0.1 sy,  0.0 ni, 99.5 id,  0.0 wa",
+      "MiB Mem :   1987.5 total,   1234.2 free,    412.1 used,    341.2 buff/cache",
+      "",
+      "  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND",
+      "    1 root      20   0  168940  13084   8452 S   0.0   0.6   0:01.23 systemd",
+      "  423 root      20   0   72288   6540   5672 S   0.0   0.3   0:00.12 sshd",
+      "  891 user      20   0   22016   5120   4096 S   0.0   0.3   0:00.05 bash",
+      "",
+      "(Simulação — pressione Enter para continuar)",
+    ].join("\n");
+  }
+
+  if (base === "sudo") {
+    const rest = parts.slice(1).join(" ");
+    if (!rest) return "[sudo] senha para user: (simulado)\nComando executado com privilégios de root.";
+    if (rest.startsWith("apt")) {
+      return simulateApt(parts.slice(2));
+    }
+    return `[sudo] Executando: ${rest}\nComando concluído com sucesso.`;
+  }
+
+  if (base === "apt") {
+    return simulateApt(parts.slice(1));
+  }
+
+  if (base === "less") {
+    const file = parts[1];
+    return file
+      ? `(Simulação do less — use cat ${file} para ler o conteúdo completo)`
+      : "less: nenhum arquivo especificado";
+  }
+
+  if (base === "nano") {
+    const file = parts[1];
+    return file
+      ? `(Simulação do nano — use echo 'texto' > ${file} para editar arquivos neste terminal)`
+      : "nano: nenhum arquivo especificado";
+  }
+
+  if (base === "chown") {
+    const target = parts[parts.length - 1];
+    return target
+      ? `chown: permissões de '${target}' alteradas (simulado)`
+      : "chown: operando ausente";
+  }
+
+  return null; // não é um comando simulado — deixa o VFS tratar
+}
+
+function simulateApt(args: string[]): string {
+  const sub = args[0] || "help";
+  if (sub === "update") {
+    return [
+      "Atingido:1 http://archive.ubuntu.com/ubuntu noble InRelease",
+      "Atingido:2 http://security.ubuntu.com/ubuntu noble-security InRelease",
+      "Lendo listas de pacotes... Pronto",
+      "Construindo árvore de dependências... Pronto",
+      "Lendo informações de estado... Pronto",
+      "Todos os pacotes estão atualizados.",
+    ].join("\n");
+  }
+  if (sub === "list") {
+    return [
+      "Listando... Pronto",
+      "bash/noble,now 5.2.15-2ubuntu1 amd64 [instalado]",
+      "coreutils/noble,now 9.4-2ubuntu1 amd64 [instalado]",
+      "grep/noble,now 3.11-4build1 amd64 [instalado]",
+      "nano/noble,now 7.2-2 amd64 [instalado]",
+      "vim/noble 2:9.1.0016-1ubuntu7 amd64",
+      "git/noble 1:2.43.0-1ubuntu7 amd64",
+      "python3/noble 3.12.3-0ubuntu1 amd64",
+    ].join("\n");
+  }
+  if (sub === "install") {
+    const pkg = args[1] || "<pacote>";
+    return [
+      `Lendo listas de pacotes... Pronto`,
+      `Construindo árvore de dependências... Pronto`,
+      `Os seguintes pacotes NOVOS serão instalados:`,
+      `  ${pkg}`,
+      `0 pacotes atualizados, 1 pacote instalado, 0 a remover.`,
+      `Configurando ${pkg}... Pronto`,
+    ].join("\n");
+  }
+  return [
+    "Uso: apt [opções] comando",
+    "  update   - atualizar lista de pacotes",
+    "  install  - instalar pacotes",
+    "  remove   - remover pacotes",
+    "  list     - listar pacotes",
+    "  search   - buscar pacotes",
+  ].join("\n");
 }

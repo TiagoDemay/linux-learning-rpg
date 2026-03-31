@@ -263,3 +263,185 @@ describe("getPrompt", () => {
     expect(prompt).toContain("/etc");
   });
 });
+
+// ─────────────────────────────────────────────────────────
+//  Tasks — sistema de sub-tarefas (Floresta de Stallman)
+// ─────────────────────────────────────────────────────────
+import {
+  getChallenge,
+  getChallengeCount,
+  getTotalReward,
+} from "../data/tasks";
+
+describe("Floresta de Stallman — estrutura dos desafios", () => {
+  it("tem exatamente 10 desafios", () => {
+    expect(getChallengeCount("floresta-stallman")).toBe(10);
+  });
+
+  it("recompensa total é 165 moedas", () => {
+    expect(getTotalReward("floresta-stallman")).toBe(165);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 1 (pwd + ls)", () => {
+  it("valida quando ambos os comandos estão no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 0)!;
+    expect(c.validate(vfs, ["pwd", "ls"])).toBe(true);
+  });
+  it("falha sem ls", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 0)!;
+    expect(c.validate(vfs, ["pwd"])).toBe(false);
+  });
+  it("falha sem pwd", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 0)!;
+    expect(c.validate(vfs, ["ls"])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 2 (mkdir + cd acampamento)", () => {
+  it("valida quando diretório existe e cd foi usado", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("mkdir acampamento", vfs).newState;
+    vfs = executeCommand("cd acampamento", vfs).newState;
+    const c = getChallenge("floresta-stallman", 1)!;
+    expect(c.validate(vfs, ["mkdir acampamento", "cd acampamento"])).toBe(true);
+  });
+  it("falha se diretório não existe", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 1)!;
+    expect(c.validate(vfs, ["mkdir acampamento", "cd acampamento"])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 3 (touch + rmdir)", () => {
+  it("valida quando rascunho.txt existe e lixo foi removido", () => {
+    let vfs = createInitialVFS();
+    // Cria acampamento (desafio 2) e entra nele
+    vfs = executeCommand("mkdir acampamento", vfs).newState;
+    vfs = executeCommand("cd acampamento", vfs).newState;
+    // Cria rascunho.txt no diretório atual (acampamento)
+    vfs = executeCommand("touch rascunho.txt", vfs).newState;
+    vfs = executeCommand("mkdir lixo", vfs).newState;
+    vfs = executeCommand("rmdir lixo", vfs).newState;
+    const c = getChallenge("floresta-stallman", 2)!;
+    expect(c.validate(vfs, [])).toBe(true);
+  });
+  it("também valida quando rascunho.txt está em /home/user", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch rascunho.txt", vfs).newState;
+    vfs = executeCommand("mkdir lixo", vfs).newState;
+    vfs = executeCommand("rmdir lixo", vfs).newState;
+    const c = getChallenge("floresta-stallman", 2)!;
+    expect(c.validate(vfs, [])).toBe(true);
+  });
+  it("falha se lixo ainda existe", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch rascunho.txt", vfs).newState;
+    vfs = executeCommand("mkdir lixo", vfs).newState;
+    const c = getChallenge("floresta-stallman", 2)!;
+    expect(c.validate(vfs, [])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 4 (echo + cat mensagem.txt)", () => {
+  it("valida quando arquivo tem conteúdo e cat foi usado", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("echo 'Que o Software Livre prevaleça!' > mensagem.txt", vfs).newState;
+    const c = getChallenge("floresta-stallman", 3)!;
+    expect(c.validate(vfs, ["cat mensagem.txt"])).toBe(true);
+  });
+  it("falha sem cat no histórico", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("echo 'Software Livre' > mensagem.txt", vfs).newState;
+    const c = getChallenge("floresta-stallman", 3)!;
+    expect(c.validate(vfs, [])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 5 (cp + mv)", () => {
+  it("valida backup.txt, notas.txt existem e rascunho.txt não existe", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("echo msg > mensagem.txt", vfs).newState;
+    vfs = executeCommand("touch rascunho.txt", vfs).newState;
+    vfs = executeCommand("cp mensagem.txt backup.txt", vfs).newState;
+    vfs = executeCommand("mv rascunho.txt notas.txt", vfs).newState;
+    const c = getChallenge("floresta-stallman", 4)!;
+    expect(c.validate(vfs, [])).toBe(true);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 6 (find + rm backup.txt)", () => {
+  it("valida quando backup.txt foi removido e find foi usado", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch backup.txt", vfs).newState;
+    vfs = executeCommand("rm backup.txt", vfs).newState;
+    const c = getChallenge("floresta-stallman", 5)!;
+    expect(c.validate(vfs, ["find . -name 'backup.txt'", "rm backup.txt"])).toBe(true);
+  });
+  it("falha sem find no histórico", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch backup.txt", vfs).newState;
+    vfs = executeCommand("rm backup.txt", vfs).newState;
+    const c = getChallenge("floresta-stallman", 5)!;
+    expect(c.validate(vfs, ["rm backup.txt"])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 7 (grep)", () => {
+  it("valida diario.txt com 'liberdade' e grep no histórico", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("echo 'Linux é liberdade' > diario.txt", vfs).newState;
+    const c = getChallenge("floresta-stallman", 6)!;
+    expect(c.validate(vfs, ["grep 'liberdade' diario.txt"])).toBe(true);
+  });
+  it("falha sem grep no histórico", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("echo 'Linux é liberdade' > diario.txt", vfs).newState;
+    const c = getChallenge("floresta-stallman", 6)!;
+    expect(c.validate(vfs, [])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 8 (chmod)", () => {
+  it("valida feitico.sh existe e chmod foi usado", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch feitico.sh", vfs).newState;
+    const c = getChallenge("floresta-stallman", 7)!;
+    expect(c.validate(vfs, ["chmod +x feitico.sh"])).toBe(true);
+  });
+  it("falha sem chmod no histórico", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch feitico.sh", vfs).newState;
+    const c = getChallenge("floresta-stallman", 7)!;
+    expect(c.validate(vfs, [])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 9 (ps + top)", () => {
+  it("valida quando ambos estão no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 8)!;
+    expect(c.validate(vfs, ["ps", "top"])).toBe(true);
+  });
+  it("falha sem top", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 8)!;
+    expect(c.validate(vfs, ["ps"])).toBe(false);
+  });
+});
+
+describe("Floresta de Stallman — Desafio 10 (sudo + apt)", () => {
+  it("valida sudo + apt no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 9)!;
+    expect(c.validate(vfs, ["sudo apt list", "sudo apt update"])).toBe(true);
+  });
+  it("falha sem sudo", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("floresta-stallman", 9)!;
+    expect(c.validate(vfs, ["apt list"])).toBe(false);
+  });
+});

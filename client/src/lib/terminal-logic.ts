@@ -388,6 +388,58 @@ function cmdMv(vfs: VFSState, args: string[]): CommandResult {
   return { output: "", newState: state };
 }
 
+function cmdRmdir(vfs: VFSState, args: string[]): CommandResult {
+  const state = deepClone(vfs);
+  if (args.length === 0) return { output: "", error: "rmdir: missing operand", newState: state };
+  const target = resolvePath(state.currentPath, args[0]);
+  const node = getNode(state, target);
+  if (!node) return { output: "", error: `rmdir: failed to remove '${args[0]}': No such file or directory`, newState: state };
+  if (node.type !== "directory") return { output: "", error: `rmdir: failed to remove '${args[0]}': Not a directory`, newState: state };
+  const childCount = Object.keys(node.children || {}).length;
+  if (childCount > 0) return { output: "", error: `rmdir: failed to remove '${args[0]}': Directory not empty`, newState: state };
+  // Remove from parent's children
+  const parentPath = target.substring(0, target.lastIndexOf("/")) || "/";
+  const name = target.substring(target.lastIndexOf("/") + 1);
+  const parentNode = state.filesystem[parentPath];
+  if (parentNode?.children) delete parentNode.children[name];
+  // Remove from filesystem map
+  delete state.filesystem[target];
+  return { output: "", newState: state };
+}
+
+function cmdGrep(vfs: VFSState, args: string[]): CommandResult {
+  if (args.length < 2) return { output: "", error: "grep: usage: grep PATTERN FILE", newState: vfs };
+  const pattern = args[0];
+  const filePath = resolvePath(vfs.currentPath, args[1]);
+  const node = getNode(vfs, filePath);
+  if (!node) return { output: "", error: `grep: ${args[1]}: No such file or directory`, newState: vfs };
+  if (node.type === "directory") return { output: "", error: `grep: ${args[1]}: Is a directory`, newState: vfs };
+  const content = node.content || "";
+  const lines = content.split("\n");
+  const matched = lines.filter((l) => l.includes(pattern));
+  if (matched.length === 0) return { output: "", error: `(sem correspondências para '${pattern}')`, newState: vfs };
+  return { output: matched.join("\n"), newState: vfs };
+}
+
+function cmdFind(vfs: VFSState, args: string[]): CommandResult {
+  // find [dir] -name pattern
+  const nameIdx = args.indexOf("-name");
+  const searchPattern = nameIdx >= 0 ? args[nameIdx + 1] : undefined;
+  const startDir = args[0] && !args[0].startsWith("-") ? resolvePath(vfs.currentPath, args[0]) : vfs.currentPath;
+  const results: string[] = [];
+  const allPaths = Object.keys(vfs.filesystem);
+  for (const p of allPaths) {
+    if (!p.startsWith(startDir)) continue;
+    const name = p.substring(p.lastIndexOf("/") + 1);
+    if (!searchPattern || name === searchPattern || name.includes(searchPattern.replace(/\*/g, ""))) {
+      const rel = p.replace(startDir, ".");
+      results.push(rel || ".");
+    }
+  }
+  if (results.length === 0) return { output: "", error: `(nenhum arquivo encontrado)`, newState: vfs };
+  return { output: results.join("\n"), newState: vfs };
+}
+
 function cmdChmod(vfs: VFSState, args: string[]): CommandResult {
   const state = deepClone(vfs);
   if (args.length < 2) return { output: "", error: "chmod: missing operand", newState: state };
@@ -516,6 +568,15 @@ export function executeCommand(input: string, vfs: VFSState): CommandResult {
         break;
       case "mv":
         result = cmdMv(currentState, args);
+        break;
+      case "rmdir":
+        result = cmdRmdir(currentState, args);
+        break;
+      case "grep":
+        result = cmdGrep(currentState, args);
+        break;
+      case "find":
+        result = cmdFind(currentState, args);
         break;
       case "chmod":
         result = cmdChmod(currentState, args);

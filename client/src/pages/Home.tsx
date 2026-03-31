@@ -14,6 +14,8 @@ interface GameState {
   unlockedLevels: string[];
   completedLevels: string[];
   currentLevel: string;
+  /** Índice do desafio atual por nível: { "floresta-stallman": 2, ... } */
+  challengeProgress: Record<string, number>;
 }
 
 const STORAGE_KEY = "terras-do-kernel-save";
@@ -21,13 +23,18 @@ const STORAGE_KEY = "terras-do-kernel-save";
 function loadGameState(): GameState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Garante que challengeProgress existe em saves antigos
+      return { challengeProgress: {}, ...parsed };
+    }
   } catch {}
   return {
     coins: 0,
     unlockedLevels: ["floresta-stallman"],
     completedLevels: [],
     currentLevel: "floresta-stallman",
+    challengeProgress: {},
   };
 }
 
@@ -44,7 +51,7 @@ export default function Home() {
   const [pendingUnlock, setPendingUnlock] = useState<Level | null>(null);
   const [sparkleActive, setSparkleActive] = useState(false);
   const [sparkleMessage, setSparkleMessage] = useState("");
-  const [coinAnimation, setCoinAnimation] = useState(false);
+  const [coinAnimation, setCoinAnimation] = useState<number | null>(null);
 
   // Persist game state
   useEffect(() => {
@@ -67,13 +74,12 @@ export default function Home() {
 
     setGameState((prev) => {
       if (prev.coins < level.unlockCost) return prev;
-      const newState = {
+      return {
         ...prev,
         coins: prev.coins - level.unlockCost,
         unlockedLevels: [...prev.unlockedLevels, level.id],
         currentLevel: level.id,
       };
-      return newState;
     });
 
     setSparkleMessage(`${level.icon} ${level.name} Desbloqueado!`);
@@ -81,18 +87,41 @@ export default function Home() {
     setTimeout(() => setView("terminal"), 1500);
   }, [pendingUnlock]);
 
-  const handleTaskComplete = useCallback((levelId: string, reward: number) => {
-    setGameState((prev) => {
-      if (prev.completedLevels.includes(levelId)) return prev;
-      return {
-        ...prev,
-        coins: prev.coins + reward,
-        completedLevels: [...prev.completedLevels, levelId],
-      };
-    });
-    setCoinAnimation(true);
-    setTimeout(() => setCoinAnimation(false), 1000);
-  }, []);
+  /**
+   * Chamado pelo Terminal quando uma sub-tarefa é concluída.
+   * Se for a última sub-tarefa do nível, marca o nível como completo.
+   */
+  const handleChallengeComplete = useCallback(
+    (levelId: string, challengeIndex: number, reward: number, isLastChallenge: boolean) => {
+      setGameState((prev) => {
+        const newProgress = {
+          ...prev.challengeProgress,
+          [levelId]: challengeIndex + 1,
+        };
+        const newCompletedLevels =
+          isLastChallenge && !prev.completedLevels.includes(levelId)
+            ? [...prev.completedLevels, levelId]
+            : prev.completedLevels;
+        return {
+          ...prev,
+          coins: prev.coins + reward,
+          challengeProgress: newProgress,
+          completedLevels: newCompletedLevels,
+        };
+      });
+      setCoinAnimation(reward);
+      setTimeout(() => setCoinAnimation(null), 1200);
+    },
+    []
+  );
+
+  // Compat: chamado por níveis legados com 1 único desafio
+  const handleTaskComplete = useCallback(
+    (levelId: string, reward: number) => {
+      handleChallengeComplete(levelId, 0, reward, true);
+    },
+    [handleChallengeComplete]
+  );
 
   const handleVFSChange = useCallback((newVFS: VFSState) => {
     setVfs(newVFS);
@@ -149,7 +178,9 @@ export default function Home() {
               vfs={vfs}
               onVFSChange={handleVFSChange}
               onTaskComplete={handleTaskComplete}
+              onChallengeComplete={handleChallengeComplete}
               completedLevels={gameState.completedLevels}
+              challengeProgress={gameState.challengeProgress}
               onBackToMap={handleBackToMap}
             />
           </div>
@@ -172,12 +203,12 @@ export default function Home() {
       />
 
       {/* Coin earn floating animation */}
-      {coinAnimation && (
+      {coinAnimation !== null && (
         <div
           className="fixed top-16 right-8 z-40 pointer-events-none font-bold text-yellow-400 text-xl"
-          style={{ animation: "float-up 1s ease-out forwards" }}
+          style={{ animation: "float-up 1.2s ease-out forwards" }}
         >
-          +🪙
+          +{coinAnimation} 🪙
         </div>
       )}
 
