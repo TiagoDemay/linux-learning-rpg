@@ -1,6 +1,7 @@
 import { LEVELS } from "../data/levels";
 import { getLoginUrl } from "../const";
 import type { User } from "../../../drizzle/schema";
+import TDCoin from "./TDCoin";
 
 type View = "map" | "terminal" | "ranking";
 
@@ -123,9 +124,7 @@ export default function HUD({
             boxShadow: "0 0 8px rgba(201,162,39,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
           }}
         >
-          <span className="text-lg" style={{ animation: coins > 0 ? "coin-spin 3s linear infinite" : "none" }}>
-            🪙
-          </span>
+          <TDCoin size={28} animate={coins > 0} />
           <div className="flex flex-col items-end">
             <span
               style={{
