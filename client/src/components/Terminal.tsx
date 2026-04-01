@@ -27,6 +27,8 @@ interface TerminalProps {
   /** Índice do próximo desafio a ser feito por nível */
   challengeProgress: Record<string, number>;
   onBackToMap: () => void;
+  /** Reinicia o VFS e o progresso do nível atual */
+  onResetChallenge: (levelId: string) => void;
 }
 
 export default function Terminal({
@@ -38,6 +40,7 @@ export default function Terminal({
   completedLevels,
   challengeProgress,
   onBackToMap,
+  onResetChallenge,
 }: TerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([]);
   const [input, setInput] = useState("");
@@ -412,6 +415,30 @@ export default function Terminal({
             </div>
           )}
 
+          {/* Botão Reiniciar Desafio */}
+          {!isLevelDone && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Reiniciar todos os desafios de "${level?.name}"? O progresso e o VFS serão resetados.`)) {
+                  onResetChallenge(currentLevel);
+                  setLines([]);
+                  setCommandHistory([]);
+                }
+              }}
+              className="w-full mb-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 hover:opacity-90"
+              style={{
+                background: "rgba(180,40,40,0.18)",
+                border: "1px solid #8b2020",
+                color: "#ff8080",
+                fontFamily: "'MedievalSharp', serif",
+                fontSize: "0.65rem",
+                cursor: "pointer",
+              }}
+            >
+              🔄 Reiniciar Desafio
+            </button>
+          )}
+
           {isLevelDone ? (
             <div
               className="rounded-lg p-3 text-center mb-3"
@@ -421,6 +448,25 @@ export default function Terminal({
               <div style={{ color: "#27ae60", fontWeight: "bold", fontSize: "0.8rem" }}>
                 {totalChallenges > 1 ? "Todos os Desafios Concluídos!" : "Missão Concluída!"}
               </div>
+              <button
+                onClick={() => {
+                  if (window.confirm(`Reiniciar todos os desafios de "${level?.name}"?`)) {
+                    onResetChallenge(currentLevel);
+                    setLines([]);
+                    setCommandHistory([]);
+                  }
+                }}
+                className="mt-2 w-full py-1 rounded text-xs font-bold transition-all hover:opacity-80"
+                style={{
+                  background: "rgba(180,40,40,0.18)",
+                  border: "1px solid #8b2020",
+                  color: "#ff8080",
+                  cursor: "pointer",
+                  fontSize: "0.6rem",
+                }}
+              >
+                🔄 Refazer Desafios
+              </button>
             </div>
           ) : currentChallenge ? (
             <>

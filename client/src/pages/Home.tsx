@@ -135,6 +135,32 @@ export default function Home() {
     setView("map");
   }, []);
 
+  /** Reinicia o progresso e o VFS do nível atual */
+  const handleResetChallenge = useCallback((levelId: string) => {
+    setVfs(createInitialVFS());
+    setGameState((prev) => {
+      const newProgress = { ...prev.challengeProgress };
+      delete newProgress[levelId];
+      const newCompleted = prev.completedLevels.filter((id) => id !== levelId);
+      return { ...prev, challengeProgress: newProgress, completedLevels: newCompleted };
+    });
+  }, []);
+
+  /** Reinicia o jogo completamente */
+  const handleResetGame = useCallback(() => {
+    const fresh: GameState = {
+      coins: 0,
+      unlockedLevels: ["floresta-stallman"],
+      completedLevels: [],
+      currentLevel: "floresta-stallman",
+      challengeProgress: {},
+    };
+    setGameState(fresh);
+    setVfs(createInitialVFS());
+    setView("map");
+    saveGameState(fresh);
+  }, []);
+
   return (
     <div
       className="flex flex-col"
@@ -151,6 +177,7 @@ export default function Home() {
         currentLevel={gameState.currentLevel}
         view={view}
         onViewChange={handleViewChange}
+        onResetGame={handleResetGame}
       />
 
       {/* Main content */}
@@ -182,6 +209,7 @@ export default function Home() {
               completedLevels={gameState.completedLevels}
               challengeProgress={gameState.challengeProgress}
               onBackToMap={handleBackToMap}
+              onResetChallenge={handleResetChallenge}
             />
           </div>
         )}

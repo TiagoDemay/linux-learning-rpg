@@ -6,9 +6,10 @@ interface HUDProps {
   currentLevel: string;
   view: "map" | "terminal";
   onViewChange: (view: "map" | "terminal") => void;
+  onResetGame: () => void;
 }
 
-export default function HUD({ coins, completedLevels, currentLevel, view, onViewChange }: HUDProps) {
+export default function HUD({ coins, completedLevels, currentLevel, view, onViewChange, onResetGame }: HUDProps) {
   const totalLevels = LEVELS.length;
   const progress = (completedLevels.length / totalLevels) * 100;
   const currentLevelData = LEVELS.find((l) => l.id === currentLevel);
@@ -131,6 +132,26 @@ export default function HUD({ coins, completedLevels, currentLevel, view, onView
             <span style={{ color: "#8b6914", fontSize: "0.55rem" }}>moedas</span>
           </div>
         </div>
+
+        {/* Reset game button */}
+        <button
+          onClick={() => {
+            if (window.confirm("Reiniciar o jogo do zero? Todo o progresso e moedas serão perdidos.")) {
+              onResetGame();
+            }
+          }}
+          title="Reiniciar Jogo"
+          className="px-2 py-1.5 rounded transition-all hover:scale-105 hover:opacity-90"
+          style={{
+            background: "rgba(180,40,40,0.18)",
+            border: "1px solid #8b2020",
+            color: "#ff8080",
+            fontSize: "0.7rem",
+            cursor: "pointer",
+          }}
+        >
+          🔄
+        </button>
 
         {/* View toggle */}
         <div

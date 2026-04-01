@@ -58,3 +58,7 @@
 - [x] Atualizar Terminal.tsx para progressão entre sub-tarefas
 - [x] Atualizar Home.tsx para rastrear sub-tarefa atual por nível
 - [x] Testes dos novos desafios (54 testes passando)
+
+## Reset / Reinício
+- [x] Botão "Reiniciar Desafio" no terminal (reseta VFS + progresso do nível atual)
+- [x] Botão "Reiniciar Jogo" no HUD (limpa todo o localStorage e volta ao início)
