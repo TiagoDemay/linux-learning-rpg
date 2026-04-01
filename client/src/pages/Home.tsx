@@ -213,7 +213,23 @@ export default function Home() {
   }, []);
 
 
-  const handleResetGame = useCallback(() => {
+  const resetGameMutation = trpc.professor.resetGame.useMutation();
+  const utils = trpc.useUtils();
+
+  const handleResetGame = useCallback(async () => {
+    const tournamentName = window.prompt(
+      "Nome deste torneio (ex: \"Torneio Abril 2026\"):",
+      `Torneio ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`
+    );
+    if (!tournamentName?.trim()) return; // cancelado
+
+    try {
+      await resetGameMutation.mutateAsync({ tournamentName: tournamentName.trim() });
+    } catch (err) {
+      console.error("[Reset] Falha ao salvar snapshot no servidor:", err);
+      // Continua mesmo assim para limpar o estado local
+    }
+
     const fresh: GameState = {
       coins: 0,
       unlockedLevels: ["floresta-stallman"],
@@ -229,7 +245,10 @@ export default function Home() {
     setView("map");
     saveGameState(fresh);
     syncedRef.current = false;
-  }, []);
+    // Invalida queries para forçar recarga
+    utils.progress.get.invalidate();
+    utils.ranking.getTop.invalidate();
+  }, [resetGameMutation, utils]);
 
   return (
     <div

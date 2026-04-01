@@ -87,6 +87,14 @@ export default function ProfessorPanel() {
     }
   );
 
+  const { data: tournaments, refetch: refetchHistory } = trpc.professor.getTournamentHistory.useQuery(
+    undefined,
+    { enabled: !!user && user.role === "admin" }
+  );
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
     else { setSortKey(key); setSortAsc(true); }
@@ -457,6 +465,109 @@ export default function ProfessorPanel() {
             </div>
           </div>
         )}
+        {/* ── Histórico de Torneios ── */}
+        <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">
+          <button
+            onClick={() => { setHistoryOpen((v) => !v); if (!historyOpen) refetchHistory(); }}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-amber-900/10 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🏆</span>
+              <h2 className="font-medieval text-lg text-amber-400">Histórico de Torneios</h2>
+              {tournaments && tournaments.length > 0 && (
+                <span className="bg-amber-800/50 text-amber-300 text-xs px-2 py-0.5 rounded-full">
+                  {tournaments.length} torneio{tournaments.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <span className="text-amber-600 text-lg">{historyOpen ? "▲" : "▼"}</span>
+          </button>
+
+          {historyOpen && (
+            <div className="border-t border-amber-900/30 p-6">
+              {!tournaments || tournaments.length === 0 ? (
+                <p className="text-amber-500/60 text-sm text-center py-6">
+                  Nenhum torneio registrado ainda. O histórico é criado automaticamente ao reiniciar o jogo.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {/* Lista de torneios */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {tournaments.map((t) => (
+                      <button
+                        key={t.tournamentId}
+                        onClick={() => setSelectedTournament(
+                          selectedTournament === t.tournamentId ? null : t.tournamentId
+                        )}
+                        className={`text-left rounded-lg p-4 border transition-all ${
+                          selectedTournament === t.tournamentId
+                            ? "bg-amber-900/30 border-amber-600/60"
+                            : "bg-black/20 border-amber-900/30 hover:bg-amber-900/10"
+                        }`}
+                      >
+                        <div className="font-semibold text-amber-300 text-sm truncate">{t.tournamentName}</div>
+                        <div className="text-amber-500/60 text-xs mt-1">{formatDate(t.resetAt)}</div>
+                        <div className="text-amber-400/70 text-xs mt-2">
+                          {t.playerCount} jogador{t.playerCount !== 1 ? "es" : ""}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Ranking do torneio selecionado */}
+                  {selectedTournament && (() => {
+                    const t = tournaments.find((x) => x.tournamentId === selectedTournament);
+                    if (!t) return null;
+                    return (
+                      <div className="mt-4 rounded-xl border border-amber-800/40 overflow-hidden">
+                        <div className="bg-amber-900/20 px-4 py-3 flex items-center justify-between">
+                          <h3 className="font-medieval text-amber-300">{t.tournamentName}</h3>
+                          <span className="text-amber-500/60 text-xs">{formatDate(t.resetAt)}</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-amber-900/30 text-amber-500/60 text-xs">
+                                {["#", "Jogador", "Moedas", "Territórios", "Nível Final"].map((col) => (
+                                  <th key={col} className="px-4 py-2 text-left font-medium">{col}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {t.players.map((p) => (
+                                <tr key={`${t.tournamentId}-${p.position}`} className="border-b border-amber-900/20 hover:bg-amber-900/10">
+                                  <td className="px-4 py-2 text-amber-500/60 font-mono">
+                                    {p.position <= 3
+                                      ? ["🥇", "🥈", "🥉"][p.position - 1]
+                                      : p.position}
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <Avatar name={p.name} />
+                                      <div>
+                                        <div className="font-semibold text-amber-200">{p.name}</div>
+                                        {p.email && <div className="text-amber-500/50 text-xs">{p.email}</div>}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-2 text-amber-400 font-bold">{p.coins.toLocaleString("pt-BR")}</td>
+                                  <td className="px-4 py-2 text-amber-300">{p.completedLevels.length}</td>
+                                  <td className="px-4 py-2 text-amber-300/70 text-xs">
+                                    {LEVEL_NAMES[p.currentLevel] ?? p.currentLevel}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

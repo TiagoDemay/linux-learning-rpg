@@ -127,3 +127,12 @@
 - [x] Adicionar marcador da loja no RPGMap (abaixo do pinguim, ~x:44, y:60)
 - [x] Conectar marcador ao ShopModal no Home.tsx
 - [x] Testes dos itens da loja
+
+## Reset + Histórico de Torneios
+- [x] Criar tabela tournament_history no schema Drizzle
+- [x] Aplicar migração SQL no banco
+- [x] Procedure resetGame: salva snapshot, zera progress de todos os jogadores
+- [x] Procedure getTournamentHistory: retorna lista de torneios anteriores
+- [x] HUD: botão reiniciar chama resetGame no servidor
+- [x] ProfessorPanel: aba/seção de histórico de torneios
+- [x] Testes das novas procedures

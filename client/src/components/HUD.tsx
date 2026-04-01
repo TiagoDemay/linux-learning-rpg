@@ -11,7 +11,7 @@ interface HUDProps {
   currentLevel: string;
   view: View;
   onViewChange: (view: View) => void;
-  onResetGame: () => void;
+  onResetGame: () => void | Promise<void>;
   user: User | null | undefined;
   isAuthenticated: boolean;
 }
@@ -213,11 +213,7 @@ export default function HUD({
         {/* Reset game button — visível apenas para admin */}
         {user?.role === "admin" && (
           <button
-            onClick={() => {
-              if (window.confirm("Reiniciar o jogo do zero? Todo o progresso e moedas serão perdidos.")) {
-                onResetGame();
-              }
-            }}
+            onClick={() => onResetGame()}
             title="Reiniciar Jogo (Admin)"
             className="px-2 py-1.5 rounded transition-all hover:scale-105 hover:opacity-90"
             style={{

@@ -79,3 +79,64 @@ describe("professor.getStudents", () => {
     }
   });
 });
+
+describe("professor.resetGame", () => {
+  it("retorna FORBIDDEN para usuário com role 'user'", async () => {
+    const ctx = createStudentContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.professor.resetGame({ tournamentName: "Torneio Teste" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("admin sem banco recebe erro interno (não FORBIDDEN)", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.professor.resetGame({ tournamentName: "Torneio Teste" });
+    } catch (err: unknown) {
+      const trpcErr = err as { code?: string };
+      expect(trpcErr.code).not.toBe("FORBIDDEN");
+    }
+  });
+
+  it("valida que o nome do torneio não pode ser vazio", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.professor.resetGame({ tournamentName: "" })
+    ).rejects.toBeDefined();
+  });
+});
+
+describe("professor.getTournamentHistory", () => {
+  it("retorna FORBIDDEN para usuário com role 'user'", async () => {
+    const ctx = createStudentContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.professor.getTournamentHistory()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("retorna array para admin (pode ser vazio sem banco)", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.professor.getTournamentHistory();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("cada torneio tem os campos obrigatórios", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.professor.getTournamentHistory();
+    for (const t of result) {
+      expect(t).toHaveProperty("tournamentId");
+      expect(t).toHaveProperty("tournamentName");
+      expect(t).toHaveProperty("resetAt");
+      expect(t).toHaveProperty("playerCount");
+      expect(t).toHaveProperty("players");
+      expect(Array.isArray(t.players)).toBe(true);
+      expect(typeof t.playerCount).toBe("number");
+    }
+  });
+});

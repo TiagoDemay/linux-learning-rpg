@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents } from "./db";
+import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, resetAllProgress, getTournamentHistory } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -85,6 +85,43 @@ export const appRouter = router({
         progressUpdatedAt: r.progressUpdatedAt ?? null,
         joinedAt: r.createdAt,
         role: r.role,
+      }));
+    }),
+
+    /**
+     * Salva snapshot do torneio atual e zera o progresso de todos os jogadores.
+     * Exclusivo para admin.
+     */
+    resetGame: protectedProcedure
+      .input(z.object({ tournamentName: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+        }
+        const tournamentId = await resetAllProgress(input.tournamentName);
+        return { success: true, tournamentId };
+      }),
+
+    /** Retorna o histórico de torneios anteriores — exclusivo para admin */
+    getTournamentHistory: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+      }
+      const history = await getTournamentHistory();
+      return history.map((t) => ({
+        tournamentId: t.tournamentId,
+        tournamentName: t.tournamentName,
+        resetAt: t.resetAt,
+        playerCount: t.players.length,
+        players: t.players.map((p) => ({
+          position: p.position,
+          name: p.userName ?? "Aventureiro Anônimo",
+          email: p.userEmail ?? null,
+          coins: p.coins,
+          completedLevels: (p.completedLevels ?? []) as string[],
+          currentLevel: p.currentLevel,
+          challengeProgress: (p.challengeProgress ?? {}) as Record<string, number>,
+        })),
       }));
     }),
   }),

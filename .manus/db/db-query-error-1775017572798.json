@@ -1,0 +1,13 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `tournament_history` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`tournamentId` varchar(64) NOT NULL,\n\t`tournamentName` varchar(128) NOT NULL,\n\t`resetAt` timestamp NOT NULL DEFAULT (now()),\n\t`userId` int NOT NULL,\n\t`userName` text,\n\t`userEmail` varchar(320),\n\t`coins` int NOT NULL DEFAULT 0,\n\t`completedLevels` json NOT NULL DEFAULT ('[]'),\n\t`currentLevel` varchar(64) NOT NULL DEFAULT 'floresta-stallman',\n\t`challengeProgress` json NOT NULL DEFAULT ('{}'),\n\t`position` int NOT NULL DEFAULT 0,\n\tCONSTRAINT `tournament_history_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3FCZ88WJFcZi16n.root --database TSiRdqLfDbHcFkVjrjk85H --execute CREATE TABLE IF NOT EXISTS `tournament_history` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`tournamentId` varchar(64) NOT NULL,\n\t`tournamentName` varchar(128) NOT NULL,\n\t`resetAt` timestamp NOT NULL DEFAULT (now()),\n\t`userId` int NOT NULL,\n\t`userName` text,\n\t`userEmail` varchar(320),\n\t`coins` int NOT NULL DEFAULT 0,\n\t`completedLevels` json NOT NULL DEFAULT ('[]'),\n\t`currentLevel` varchar(64) NOT NULL DEFAULT 'floresta-stallman',\n\t`challengeProgress` json NOT NULL DEFAULT ('{}'),\n\t`position` int NOT NULL DEFAULT 0,\n\tCONSTRAINT `tournament_history_id` PRIMARY KEY(`id`)\n);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 10 column 47 near \"'[]'),",
+    "\t`currentLevel` varchar(64) NOT NULL DEFAULT 'floresta-stallman',",
+    "\t`challengeProgress` json NOT NULL DEFAULT ('{}'),",
+    "\t`position` int NOT NULL DEFAULT 0,",
+    "\tCONSTRAINT `tournament_history_id` PRIMARY KEY(`id`)",
+    ")\""
+  ]
+}

@@ -25,7 +25,33 @@ export const userProgress = mysqlTable("user_progress", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/**
+ * Snapshot de um torneio encerrado.
+ * Cada linha representa um jogador no momento do reset.
+ */
+export const tournamentHistory = mysqlTable("tournament_history", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Identificador do torneio (UUID gerado no momento do reset) */
+  tournamentId: varchar("tournamentId", { length: 64 }).notNull(),
+  /** Nome do torneio (ex: "Torneio 1 - Abr 2026") */
+  tournamentName: varchar("tournamentName", { length: 128 }).notNull(),
+  /** Data/hora em que o reset foi executado */
+  resetAt: timestamp("resetAt").defaultNow().notNull(),
+  /** ID do usuário no momento do snapshot */
+  userId: int("userId").notNull(),
+  userName: text("userName"),
+  userEmail: varchar("userEmail", { length: 320 }),
+  coins: int("coins").default(0).notNull(),
+  completedLevels: json("completedLevels").$type<string[]>(),
+  currentLevel: varchar("currentLevel", { length: 64 }).default("floresta-stallman").notNull(),
+  challengeProgress: json("challengeProgress").$type<Record<string, number>>(),
+  /** Posição no ranking no momento do reset */
+  position: int("position").default(0).notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserProgress = typeof userProgress.$inferSelect;
 export type InsertUserProgress = typeof userProgress.$inferInsert;
+export type TournamentHistory = typeof tournamentHistory.$inferSelect;
+export type InsertTournamentHistory = typeof tournamentHistory.$inferInsert;
