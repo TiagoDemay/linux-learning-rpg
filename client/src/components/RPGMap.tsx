@@ -129,6 +129,16 @@ export default function RPGMap({
             const cpy = my + ((dx / len) * curve * seed);
             const d = `M ${from.x} ${from.y} Q ${cpx} ${cpy} ${to.x} ${to.y}`;
 
+            // Calcular pontos ao longo da curva Bézier quadrática para as pedras miliárias
+            // Usamos t=0.33 e t=0.66 para posicionar duas pedras por caminho
+            const bezierPoint = (t: number) => {
+              const bx = (1-t)*(1-t)*from.x + 2*(1-t)*t*cpx + t*t*to.x;
+              const by = (1-t)*(1-t)*from.y + 2*(1-t)*t*cpy + t*t*to.y;
+              return { x: bx, y: by };
+            };
+            const stone1 = bezierPoint(0.33);
+            const stone2 = bezierPoint(0.66);
+
             return (
               <g key={`${fromId}-${toId}`}>
                 {/* Sombra da estrada */}
@@ -174,6 +184,38 @@ export default function RPGMap({
                     opacity={0.5}
                   />
                 )}
+                {/* Pedras miliárias ao longo do caminho */}
+                {[stone1, stone2].map((pt, i) => (
+                  <g key={i} transform={`translate(${pt.x}, ${pt.y})`} opacity={isActive ? 0.9 : 0.5}>
+                    {/* Sombra da pedra */}
+                    <ellipse cx="0.15" cy="0.9" rx="0.7" ry="0.2" fill="#1a0f00" opacity="0.3" />
+                    {/* Base da pedra (enterrada no chão) */}
+                    <rect x="-0.45" y="0.55" width="0.9" height="0.35" rx="0.1"
+                      fill={isActive ? "#5c3d1a" : "#3a2a12"} opacity="0.8" />
+                    {/* Corpo principal da pedra */}
+                    <rect x="-0.38" y="-0.55" width="0.76" height="1.15" rx="0.15"
+                      fill={isActive ? "#8a7055" : "#5a4a35"}
+                      stroke={isActive ? "#4a3020" : "#2a1a0a"}
+                      strokeWidth="0.06" />
+                    {/* Face frontal (mais clara) */}
+                    <rect x="-0.3" y="-0.48" width="0.6" height="1.0" rx="0.1"
+                      fill={isActive ? "#a08060" : "#6a5a45"} opacity="0.7" />
+                    {/* Marca na pedra (X romano ou marca de distância) */}
+                    <text
+                      x="0" y="0.12"
+                      textAnchor="middle"
+                      fontSize="0.35"
+                      fontFamily="serif"
+                      fontWeight="bold"
+                      fill={isActive ? "#2a1a0a" : "#1a0f00"}
+                      opacity="0.8"
+                    >{i === 0 ? "I" : "II"}</text>
+                    {/* Linha horizontal decorativa */}
+                    <line x1="-0.25" y1="-0.18" x2="0.25" y2="-0.18"
+                      stroke={isActive ? "#3a2510" : "#2a1a0a"}
+                      strokeWidth="0.04" opacity="0.6" />
+                  </g>
+                ))}
               </g>
             );
           })}
