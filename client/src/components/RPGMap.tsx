@@ -252,12 +252,16 @@ export default function RPGMap({
                 </div>
               )}
 
-              {/* Tooltip on hover */}
-              {isHovered && (
+              {/* Tooltip on hover — aparece abaixo quando y < 40% (próximo ao topo), acima caso contrário */}
+              {isHovered && (() => {
+                const showBelow = level.y < 40;
+                return (
                 <div
                   className="absolute z-30 rounded-lg p-3 shadow-xl"
                   style={{
-                    bottom: "calc(100% + 12px)",
+                    ...(showBelow
+                      ? { top: "calc(100% + 12px)", bottom: "auto" }
+                      : { bottom: "calc(100% + 12px)", top: "auto" }),
                     left: "50%",
                     transform: "translateX(-50%)",
                     width: "180px",
@@ -285,7 +289,8 @@ export default function RPGMap({
                     {status === "locked" && <span className="text-gray-400">🔒 Bloqueado</span>}
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           );
         })}

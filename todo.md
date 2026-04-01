@@ -111,3 +111,6 @@
 - [x] Rota /professor protegida por role admin no App.tsx
 - [x] Botão de acesso ao painel no HUD (apenas admin) 📚
 - [x] Testes da procedure getStudents (96 testes passando)
+
+## Ajustes de UX
+- [x] Tooltip dos marcadores: posicionamento dinâmico (abaixo quando y < 40%, acima caso contrário)
