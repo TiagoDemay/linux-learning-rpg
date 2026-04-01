@@ -69,7 +69,7 @@ export default function RPGMap({
   };
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: "16/9", maxHeight: "calc(100vh - 80px)" }}>
+    <div className="relative w-full h-full" style={{ aspectRatio: "16/9", maxHeight: "calc(100vh - 72px)", margin: "auto" }}>
       {/* Real map image background */}
       <div
         className="absolute inset-0 rounded-lg overflow-hidden"

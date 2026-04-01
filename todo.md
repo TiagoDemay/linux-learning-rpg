@@ -94,3 +94,6 @@
 - [x] Vale do Arch Linux — pacman/AUR (pacman -S/-R/-Ss/-Q, makepkg, yay)
 - [x] Suporte simulado para todos os novos comandos no terminal (60+ comandos)
 - [x] Testes: 93 testes passando
+
+## Correções de Layout
+- [x] Centralizar mapa verticalmente na tela (remover espaço vazio abaixo)

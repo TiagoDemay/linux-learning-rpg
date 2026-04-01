@@ -215,8 +215,8 @@ export default function Home() {
 
       <div className="flex-1 overflow-hidden relative">
         {view === "map" && (
-          <div className="w-full h-full flex items-center justify-center p-3" style={{ background: "linear-gradient(135deg, #1a0f0a 0%, #2c1810 100%)" }}>
-            <div className="w-full h-full max-w-7xl">
+          <div className="w-full h-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #1a0f0a 0%, #2c1810 100%)", padding: "8px" }}>
+            <div style={{ width: "100%", height: "100%", maxWidth: "min(100%, calc((100vh - 72px) * 16 / 9))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <RPGMap
                 unlockedLevels={gameState.unlockedLevels}
                 completedLevels={gameState.completedLevels}
