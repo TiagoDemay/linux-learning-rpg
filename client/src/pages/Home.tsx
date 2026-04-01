@@ -172,15 +172,6 @@ export default function Home() {
   const handleViewChange = useCallback((newView: View) => { setView(newView); }, []);
   const handleBackToMap = useCallback(() => { setView("map"); }, []);
 
-  const handleResetChallenge = useCallback((levelId: string) => {
-    setVfs(createInitialVFS());
-    setGameState((prev) => {
-      const newProgress = { ...prev.challengeProgress };
-      delete newProgress[levelId];
-      const newCompleted = prev.completedLevels.filter((id) => id !== levelId);
-      return { ...prev, challengeProgress: newProgress, completedLevels: newCompleted };
-    });
-  }, []);
 
   const handleResetGame = useCallback(() => {
     const fresh: GameState = {
@@ -239,7 +230,6 @@ export default function Home() {
               completedLevels={gameState.completedLevels}
               challengeProgress={gameState.challengeProgress}
               onBackToMap={handleBackToMap}
-              onResetChallenge={handleResetChallenge}
             />
           </div>
         )}

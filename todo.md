@@ -114,3 +114,4 @@
 
 ## Ajustes de UX
 - [x] Tooltip dos marcadores: posicionamento dinâmico (abaixo quando y < 40%, acima caso contrário)
+- [x] Remover botão "Reiniciar Desafio" e bloco de dica explícita do painel lateral do terminal
