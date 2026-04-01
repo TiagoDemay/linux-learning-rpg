@@ -165,3 +165,6 @@
 - [x] Verificar campo blocked no contexto tRPC (context.ts) para bloquear usuários
 - [x] Verificar campo blocked no callback OAuth para impedir login
 - [x] Retornar erro claro ao usuário bloqueado
+
+## Exportação CSV
+- [x] Botão "Exportar CSV" no ranking de cada torneio do histórico

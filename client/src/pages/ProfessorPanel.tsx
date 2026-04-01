@@ -21,6 +21,50 @@ function formatDate(d: Date | null | undefined) {
   });
 }
 
+function exportTournamentCsv(tournament: {
+  tournamentName: string;
+  resetAt: Date | null | undefined;
+  players: Array<{
+    position: number;
+    name: string | null;
+    email: string | null;
+    coins: number;
+    completedLevels: string[];
+    currentLevel: string;
+  }>;
+}) {
+  const header = ["Posição", "Nome", "E-mail", "Moedas", "Territórios Concluídos", "Nível Final"];
+  const rows = tournament.players.map((p) => [
+    p.position,
+    p.name ?? "Anônimo",
+    p.email ?? "",
+    p.coins,
+    p.completedLevels.length,
+    p.currentLevel,
+  ]);
+
+  const csvContent = [header, ...rows]
+    .map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    )
+    .join("\n");
+
+  const bom = "\uFEFF"; // UTF-8 BOM para compatibilidade com Excel
+  const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const safeName = tournament.tournamentName.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim();
+  const dateStr = tournament.resetAt
+    ? new Date(tournament.resetAt).toLocaleDateString("pt-BR").replace(/\//g, "-")
+    : "sem-data";
+  link.href = url;
+  link.download = `ranking-${safeName}-${dateStr}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 function timeAgo(d: Date | null | undefined) {
   if (!d) return "nunca";
   const diff = Date.now() - new Date(d).getTime();
@@ -780,9 +824,18 @@ export default function ProfessorPanel() {
                     if (!t) return null;
                     return (
                       <div className="mt-4 rounded-xl border border-amber-800/40 overflow-hidden">
-                        <div className="bg-amber-900/20 px-4 py-3 flex items-center justify-between">
-                          <h3 className="font-medieval text-amber-300">{t.tournamentName}</h3>
-                          <span className="text-amber-500/60 text-xs">{formatDate(t.resetAt)}</span>
+                        <div className="bg-amber-900/20 px-4 py-3 flex items-center justify-between gap-3">
+                          <h3 className="font-medieval text-amber-300 truncate">{t.tournamentName}</h3>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-amber-500/60 text-xs hidden sm:block">{formatDate(t.resetAt)}</span>
+                            <button
+                              onClick={() => exportTournamentCsv(t)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-green-700/50 bg-green-900/30 hover:bg-green-800/40 text-green-300 hover:text-green-100 transition-colors"
+                              title="Exportar ranking como CSV"
+                            >
+                              📅 Exportar CSV
+                            </button>
+                          </div>
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
