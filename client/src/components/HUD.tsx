@@ -1,15 +1,30 @@
 import { LEVELS } from "../data/levels";
+import { getLoginUrl } from "../const";
+import type { User } from "../../../drizzle/schema";
+
+type View = "map" | "terminal" | "ranking";
 
 interface HUDProps {
   coins: number;
   completedLevels: string[];
   currentLevel: string;
-  view: "map" | "terminal";
-  onViewChange: (view: "map" | "terminal") => void;
+  view: View;
+  onViewChange: (view: View) => void;
   onResetGame: () => void;
+  user: User | null | undefined;
+  isAuthenticated: boolean;
 }
 
-export default function HUD({ coins, completedLevels, currentLevel, view, onViewChange, onResetGame }: HUDProps) {
+export default function HUD({
+  coins,
+  completedLevels,
+  currentLevel,
+  view,
+  onViewChange,
+  onResetGame,
+  user,
+  isAuthenticated,
+}: HUDProps) {
   const totalLevels = LEVELS.length;
   const progress = (completedLevels.length / totalLevels) * 100;
   const currentLevelData = LEVELS.find((l) => l.id === currentLevel);
@@ -24,7 +39,7 @@ export default function HUD({ coins, completedLevels, currentLevel, view, onView
         minHeight: "56px",
       }}
     >
-      {/* Left: Title */}
+      {/* Left: Title + current level */}
       <div className="flex items-center gap-3">
         <div
           style={{
@@ -56,9 +71,7 @@ export default function HUD({ coins, completedLevels, currentLevel, view, onView
       {/* Center: Progress bar */}
       <div className="flex flex-col items-center gap-1 flex-1 mx-4 max-w-xs">
         <div className="flex items-center gap-2 w-full">
-          <span style={{ color: "#8b6914", fontSize: "0.65rem", whiteSpace: "nowrap" }}>
-            Progresso
-          </span>
+          <span style={{ color: "#8b6914", fontSize: "0.65rem", whiteSpace: "nowrap" }}>Progresso</span>
           <div
             className="flex-1 rounded-full overflow-hidden"
             style={{ height: "8px", background: "rgba(139,105,20,0.3)", border: "1px solid #8b6914" }}
@@ -99,8 +112,8 @@ export default function HUD({ coins, completedLevels, currentLevel, view, onView
         </div>
       </div>
 
-      {/* Right: Coins + Navigation */}
-      <div className="flex items-center gap-3">
+      {/* Right: Coins + Auth + Navigation */}
+      <div className="flex items-center gap-2">
         {/* Coin display */}
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
@@ -110,10 +123,7 @@ export default function HUD({ coins, completedLevels, currentLevel, view, onView
             boxShadow: "0 0 8px rgba(201,162,39,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
           }}
         >
-          <span
-            className="text-lg"
-            style={{ animation: coins > 0 ? "coin-spin 3s linear infinite" : "none" }}
-          >
+          <span className="text-lg" style={{ animation: coins > 0 ? "coin-spin 3s linear infinite" : "none" }}>
             🪙
           </span>
           <div className="flex flex-col items-end">
@@ -132,6 +142,53 @@ export default function HUD({ coins, completedLevels, currentLevel, view, onView
             <span style={{ color: "#8b6914", fontSize: "0.55rem" }}>moedas</span>
           </div>
         </div>
+
+        {/* Auth: login button or user name */}
+        {!isAuthenticated ? (
+          <a
+            href={getLoginUrl()}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 whitespace-nowrap"
+            style={{
+              background: "linear-gradient(135deg, rgba(201,162,39,0.25), rgba(139,105,20,0.35))",
+              border: "1px solid #8b6914",
+              color: "#c9a227",
+              textDecoration: "none",
+            }}
+          >
+            🔐 Entrar
+          </a>
+        ) : (
+          <div
+            className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg"
+            style={{
+              background: "rgba(39,174,96,0.15)",
+              border: "1px solid #27ae60",
+              color: "#2ecc71",
+              fontSize: "0.65rem",
+              maxWidth: "120px",
+            }}
+          >
+            <span>✅</span>
+            <span className="truncate" title={user?.name ?? ""}>{user?.name ?? "Aventureiro"}</span>
+          </div>
+        )}
+
+        {/* Ranking button */}
+        <button
+          onClick={() => onViewChange("ranking")}
+          title="Ver Ranking"
+          className="px-2 py-1.5 rounded transition-all hover:scale-105"
+          style={{
+            background: view === "ranking" ? "linear-gradient(135deg, #8b6914, #c9a227)" : "rgba(139,105,20,0.2)",
+            border: "1px solid #8b6914",
+            color: view === "ranking" ? "#f5e6c8" : "#c9a227",
+            fontSize: "0.75rem",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          🏆
+        </button>
 
         {/* Reset game button */}
         <button
@@ -154,10 +211,7 @@ export default function HUD({ coins, completedLevels, currentLevel, view, onView
         </button>
 
         {/* View toggle */}
-        <div
-          className="flex rounded overflow-hidden"
-          style={{ border: "2px solid #8b6914" }}
-        >
+        <div className="flex rounded overflow-hidden" style={{ border: "2px solid #8b6914" }}>
           <button
             onClick={() => onViewChange("map")}
             className="px-3 py-1.5 text-xs font-bold transition-all"

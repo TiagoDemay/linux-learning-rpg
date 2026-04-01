@@ -3,10 +3,11 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { getUserProgress, upsertUserProgress } from "./db";
+import { getUserProgress, upsertUserProgress, getTopPlayers } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -17,24 +18,28 @@ export const appRouter = router({
   }),
 
   progress: router({
+    /** Carrega o progresso salvo do usuário logado */
     get: protectedProcedure.query(async ({ ctx }) => {
       const progress = await getUserProgress(ctx.user.id);
       if (!progress) {
         return {
           coins: 0,
-          unlockedLevels: ["floresta-stallman"],
-          completedLevels: [],
+          unlockedLevels: ["floresta-stallman"] as string[],
+          completedLevels: [] as string[],
           currentLevel: "floresta-stallman",
+          challengeProgress: {} as Record<string, number>,
         };
       }
       return {
         coins: progress.coins,
-        unlockedLevels: progress.unlockedLevels as string[],
-        completedLevels: progress.completedLevels as string[],
+        unlockedLevels: (progress.unlockedLevels ?? ["floresta-stallman"]) as string[],
+        completedLevels: (progress.completedLevels ?? []) as string[],
         currentLevel: progress.currentLevel,
+        challengeProgress: (progress.challengeProgress ?? {}) as Record<string, number>,
       };
     }),
 
+    /** Salva o progresso completo do usuário logado */
     save: protectedProcedure
       .input(
         z.object({
@@ -42,6 +47,7 @@ export const appRouter = router({
           unlockedLevels: z.array(z.string()),
           completedLevels: z.array(z.string()),
           currentLevel: z.string(),
+          challengeProgress: z.record(z.string(), z.number()),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -51,8 +57,26 @@ export const appRouter = router({
           unlockedLevels: input.unlockedLevels,
           completedLevels: input.completedLevels,
           currentLevel: input.currentLevel,
+          challengeProgress: input.challengeProgress,
         });
         return { success: true };
+      }),
+  }),
+
+  ranking: router({
+    /** Retorna o top 20 jogadores por moedas — público */
+    getTop: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(50).default(20) }).optional())
+      .query(async ({ input }) => {
+        const rows = await getTopPlayers(input?.limit ?? 20);
+        return rows.map((r, idx) => ({
+          position: idx + 1,
+          name: r.name ?? "Aventureiro Anônimo",
+          coins: r.coins,
+          completedCount: Array.isArray(r.completedLevels) ? (r.completedLevels as string[]).length : 0,
+          currentLevel: r.currentLevel,
+          updatedAt: r.updatedAt,
+        }));
       }),
   }),
 });

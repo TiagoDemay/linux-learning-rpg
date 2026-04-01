@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, userProgress, InsertUserProgress } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -61,9 +61,17 @@ export async function getUserProgress(userId: number) {
   return result.length > 0 ? result[0] : null;
 }
 
-export async function upsertUserProgress(data: InsertUserProgress) {
+export async function upsertUserProgress(data: {
+  userId: number;
+  coins: number;
+  unlockedLevels: string[];
+  completedLevels: string[];
+  currentLevel: string;
+  challengeProgress: Record<string, number>;
+}) {
   const db = await getDb();
   if (!db) return;
+
   const existing = await getUserProgress(data.userId);
   if (existing) {
     await db.update(userProgress)
@@ -72,9 +80,40 @@ export async function upsertUserProgress(data: InsertUserProgress) {
         unlockedLevels: data.unlockedLevels,
         completedLevels: data.completedLevels,
         currentLevel: data.currentLevel,
+        challengeProgress: data.challengeProgress,
       })
       .where(eq(userProgress.userId, data.userId));
   } else {
-    await db.insert(userProgress).values(data);
+    await db.insert(userProgress).values({
+      userId: data.userId,
+      coins: data.coins,
+      unlockedLevels: data.unlockedLevels,
+      completedLevels: data.completedLevels,
+      currentLevel: data.currentLevel,
+      challengeProgress: data.challengeProgress,
+    });
   }
+}
+
+/** Retorna o top N jogadores ordenados por moedas (para o ranking) */
+export async function getTopPlayers(limit = 20) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select({
+      userId: userProgress.userId,
+      coins: userProgress.coins,
+      completedLevels: userProgress.completedLevels,
+      currentLevel: userProgress.currentLevel,
+      updatedAt: userProgress.updatedAt,
+      name: users.name,
+      openId: users.openId,
+    })
+    .from(userProgress)
+    .innerJoin(users, eq(userProgress.userId, users.id))
+    .orderBy(desc(userProgress.coins))
+    .limit(limit);
+
+  return rows;
 }

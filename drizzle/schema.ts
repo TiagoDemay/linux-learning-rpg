@@ -14,11 +14,13 @@ export const users = mysqlTable("users", {
 
 export const userProgress = mysqlTable("user_progress", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+  userId: int("userId").notNull().unique(),
   coins: int("coins").default(0).notNull(),
   unlockedLevels: json("unlockedLevels").$type<string[]>().default(["floresta-stallman"]).notNull(),
   completedLevels: json("completedLevels").$type<string[]>().default([]).notNull(),
   currentLevel: varchar("currentLevel", { length: 64 }).default("floresta-stallman").notNull(),
+  /** Mapa levelId -> índice da próxima sub-tarefa (0 = não iniciado) */
+  challengeProgress: json("challengeProgress").$type<Record<string, number>>().default({}).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

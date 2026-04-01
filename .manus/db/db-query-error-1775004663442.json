@@ -1,0 +1,8 @@
+{
+  "query": "ALTER TABLE `user_progress` ADD `challengeProgress` json DEFAULT ('{}') NOT NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3FCZ88WJFcZi16n.root --database TSiRdqLfDbHcFkVjrjk85H --execute ALTER TABLE `user_progress` ADD `challengeProgress` json DEFAULT ('{}') NOT NULL;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 70 near \"'{}') NOT NULL\""
+  ]
+}

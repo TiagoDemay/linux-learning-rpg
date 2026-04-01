@@ -67,3 +67,15 @@
 - [x] 10 desafios de rede e pacotes (ping, ip, ss, netstat, curl, wget, apt, dpkg, uname, hostname)
 - [x] Suporte simulado para novos comandos de rede no terminal
 - [x] Testes dos novos desafios (87 testes passando)
+
+## Sistema de Ranking e Autenticação
+- [x] Schema: tabela user_progress com userId, coins, unlockedLevels, completedLevels, challengeProgress
+- [x] Migração SQL aplicada
+- [x] tRPC: saveProgress (salvar moedas + progresso completo)
+- [x] tRPC: getRanking (top 20 jogadores por moedas)
+- [x] tRPC: getMyProgress (carregar progresso do usuário logado)
+- [x] Tela de login/cadastro com OAuth Manus (botão Entrar no HUD)
+- [x] Sincronização localStorage → banco ao fazer login (merge por maior saldo)
+- [x] Tela de ranking com nome, moedas, territórios e posição
+- [x] Botão de ranking (🏆) no HUD
+- [x] Testes das procedures de ranking (93 testes passando)
