@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useLocation } from "wouter";
 import { LEVELS } from "@/data/levels";
 
@@ -300,9 +300,8 @@ export default function ProfessorPanel() {
                       student.completedCount * totalChallengesPerLevel;
 
                     return (
-                      <>
+                      <Fragment key={student.name ?? i}>
                         <tr
-                          key={`row-${i}`}
                           className={`border-b border-amber-900/20 transition-colors ${
                             isExpanded
                               ? "bg-amber-900/20"
@@ -450,7 +449,7 @@ export default function ProfessorPanel() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
