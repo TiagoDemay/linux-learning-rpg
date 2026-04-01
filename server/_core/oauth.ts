@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { BLOCKED_ERR_MSG, COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
@@ -35,6 +35,24 @@ export function registerOAuthRoutes(app: Express) {
         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date(),
       });
+
+      // Verificar se o usuário está bloqueado antes de criar a sessão
+      const existingUser = await db.getUserByOpenId(userInfo.openId);
+      if (existingUser && (existingUser as any).blocked === 1) {
+        res.status(403).send(`
+          <!DOCTYPE html>
+          <html lang="pt-BR">
+          <head><meta charset="UTF-8"><title>Acesso Bloqueado</title>
+          <style>body{font-family:sans-serif;background:#1a0f00;color:#f5e6c8;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}
+          .box{text-align:center;padding:2rem;border:2px solid #8b6914;border-radius:12px;max-width:400px;}
+          h1{color:#f59e0b;} p{color:#d4a96a;line-height:1.6;}</style></head>
+          <body><div class="box">
+          <h1>🔒 Acesso Bloqueado</h1>
+          <p>${BLOCKED_ERR_MSG}</p>
+          </div></body></html>
+        `);
+        return;
+      }
 
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: userInfo.name || "",

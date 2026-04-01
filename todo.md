@@ -160,3 +160,8 @@
 - [ ] Deletar torneio do histórico
 - [ ] Deletar usuário (com confirmação)
 - [ ] Bloquear/desbloquear usuário
+
+## Segurança de acesso
+- [x] Verificar campo blocked no contexto tRPC (context.ts) para bloquear usuários
+- [x] Verificar campo blocked no callback OAuth para impedir login
+- [x] Retornar erro claro ao usuário bloqueado
