@@ -236,21 +236,193 @@ export const LEVEL_TASKS: LevelTask[] = [
     levelId: "floresta-stallman",
     challenges: florestaDesafios,
   },
-  // Os demais níveis mantêm 1 desafio cada (estrutura legada)
+  // ─────────────────────────────────────────────────────────
+  //  TUNDRA DO SLACKWARE — 10 Desafios de Rede e Pacotes
+  //  Cobrindo: hostname, uname, ping, ip, ss, curl, wget,
+  //            apt update/list/search/show/install/remove,
+  //            dpkg -l / dpkg -s
+  // ─────────────────────────────────────────────────────────
   {
     levelId: "tundra-slackware",
     challenges: [
+
+      // ── Desafio 1: hostname + uname ─────────────────────────
       {
         id: "tundra-1",
-        title: "Sobrevivendo ao Frio",
+        title: "Desafio I — Reconhecendo a Força",
         description:
-          "Na tundra, você precisa criar abrigo! Crie um diretório chamado 'abrigo' para se proteger do frio glacial do Slackware.",
-        hint: "mkdir abrigo",
+          "Nas terras geladas do Slackware, o primeiro passo é conhecer sua máquina! " +
+          "Use hostname para descobrir o nome do servidor e uname -a para ver todas as informações do kernel.",
+        hint: "hostname  →  uname -a",
+        reward: 5,
+        commands: ["hostname", "uname"],
+        validate: (_vfs, history) => {
+          const usedHostname = history.some((c) => c.trim().startsWith("hostname"));
+          const usedUname = history.some((c) => c.trim().startsWith("uname"));
+          return usedHostname && usedUname;
+        },
+      },
+
+      // ── Desafio 2: ping ─────────────────────────────────────────
+      {
+        id: "tundra-2",
+        title: "Desafio II — O Eco do Gelo",
+        description:
+          "As mensagens viajam pelo gelo! Use ping para testar a conectividade com o servidor " +
+          "8.8.8.8 (o oráculo do Google). Envie exatamente 4 pacotes com ping -c 4 8.8.8.8.",
+        hint: "ping -c 4 8.8.8.8",
+        reward: 8,
+        commands: ["ping"],
+        validate: (_vfs, history) =>
+          history.some((c) => c.trim().startsWith("ping") && c.includes("8.8.8.8")),
+      },
+
+      // ── Desafio 3: ip addr / ifconfig ────────────────────────────
+      {
+        id: "tundra-3",
+        title: "Desafio III — As Rotas do Gelo",
+        description:
+          "Todo explorador precisa conhecer suas rotas! Use ip addr para listar todas as " +
+          "interfaces de rede do sistema e descobrir os endereços IP disponíveis.",
+        hint: "ip addr",
+        reward: 10,
+        commands: ["ip"],
+        validate: (_vfs, history) =>
+          history.some((c) => c.trim().startsWith("ip") && c.includes("addr")),
+      },
+
+      // ── Desafio 4: ss -tuln ──────────────────────────────────────
+      {
+        id: "tundra-4",
+        title: "Desafio IV — As Portas da Fortaleza",
+        description:
+          "Uma fortaleza tem muitas portas — algumas abertas, outras fechadas! " +
+          "Use ss -tuln para listar todas as portas TCP e UDP que estão escutando no sistema.",
+        hint: "ss -tuln",
+        reward: 12,
+        commands: ["ss"],
+        validate: (_vfs, history) =>
+          history.some((c) => c.trim().startsWith("ss") && c.includes("-")),
+      },
+
+      // ── Desafio 5: curl ────────────────────────────────────────────
+      {
+        id: "tundra-5",
+        title: "Desafio V — O Mensageiro Curl",
+        description:
+          "O curl é o mensageiro das terras digitais! Use curl para buscar o cabeçalho HTTP " +
+          "de um servidor com curl -I https://example.com e guarde o resultado em 'cabecalho.txt'.",
+        hint: "curl -I https://example.com > cabecalho.txt",
         reward: 15,
-        commands: ["mkdir"],
-        validate: (vfs) => {
-          const home = vfs.filesystem["/home/user"];
-          return !!(home?.children?.["abrigo"]);
+        commands: ["curl"],
+        validate: (vfs, history) => {
+          const usedCurl = history.some((c) => c.trim().startsWith("curl"));
+          const allPaths = Object.keys(vfs.filesystem);
+          const hasCabecalho = allPaths.some((p) => p.endsWith("/cabecalho.txt"));
+          return usedCurl && hasCabecalho;
+        },
+      },
+
+      // ── Desafio 6: wget ────────────────────────────────────────────
+      {
+        id: "tundra-6",
+        title: "Desafio VI — O Caçador wget",
+        description:
+          "O wget caça arquivos pela tundra digital! Simule um download criando um arquivo " +
+          "'download.txt' com o conteúdo 'wget: arquivo baixado com sucesso' e depois use wget " +
+          "para registrar o comando no histórico.",
+        hint: "echo 'wget: arquivo baixado com sucesso' > download.txt  →  wget --help",
+        reward: 18,
+        commands: ["wget", "echo"],
+        validate: (vfs, history) => {
+          const allPaths = Object.keys(vfs.filesystem);
+          const hasDownload = allPaths.some((p) => p.endsWith("/download.txt"));
+          const usedWget = history.some((c) => c.trim().startsWith("wget"));
+          return hasDownload && usedWget;
+        },
+      },
+
+      // ── Desafio 7: apt update + apt list ─────────────────────────
+      {
+        id: "tundra-7",
+        title: "Desafio VII — Atualizando os Mapas",
+        description:
+          "Os mapas da tundra precisam ser atualizados! Use sudo apt update para sincronizar " +
+          "os repositórios e depois apt list --installed para ver os pacotes já instalados.",
+        hint: "sudo apt update  →  apt list --installed",
+        reward: 20,
+        commands: ["apt", "sudo"],
+        validate: (_vfs, history) => {
+          const usedUpdate = history.some(
+            (c) => c.includes("apt") && c.includes("update")
+          );
+          const usedList = history.some(
+            (c) => c.includes("apt") && c.includes("list")
+          );
+          return usedUpdate && usedList;
+        },
+      },
+
+      // ── Desafio 8: apt search + apt show ────────────────────────
+      {
+        id: "tundra-8",
+        title: "Desafio VIII — O Mercado de Peles",
+        description:
+          "No mercado da tundra, você precisa pesquisar antes de comprar! Use apt search curl " +
+          "para encontrar pacotes relacionados ao curl e depois apt show curl para ver os detalhes.",
+        hint: "apt search curl  →  apt show curl",
+        reward: 22,
+        commands: ["apt"],
+        validate: (_vfs, history) => {
+          const usedSearch = history.some(
+            (c) => c.includes("apt") && c.includes("search")
+          );
+          const usedShow = history.some(
+            (c) => c.includes("apt") && c.includes("show")
+          );
+          return usedSearch && usedShow;
+        },
+      },
+
+      // ── Desafio 9: dpkg ─────────────────────────────────────────────
+      {
+        id: "tundra-9",
+        title: "Desafio IX — O Inventário do Explorador",
+        description:
+          "Todo explorador precisa saber o que carrega! Use dpkg -l para listar todos os " +
+          "pacotes instalados e dpkg -s bash para inspecionar os detalhes do pacote bash.",
+        hint: "dpkg -l  →  dpkg -s bash",
+        reward: 25,
+        commands: ["dpkg"],
+        validate: (_vfs, history) => {
+          const usedDpkgL = history.some(
+            (c) => c.trim().startsWith("dpkg") && c.includes("-l")
+          );
+          const usedDpkgS = history.some(
+            (c) => c.trim().startsWith("dpkg") && c.includes("-s")
+          );
+          return usedDpkgL && usedDpkgS;
+        },
+      },
+
+      // ── Desafio 10: apt install + apt remove ──────────────────────
+      {
+        id: "tundra-10",
+        title: "Desafio X — O Grande Ritual do APT",
+        description:
+          "O ritual supremo da tundra! Use sudo apt install htop para instalar o monitor de " +
+          "processos e depois sudo apt remove htop para desinstalá-lo. Domine o ciclo de vida dos pacotes!",
+        hint: "sudo apt install htop  →  sudo apt remove htop",
+        reward: 30,
+        commands: ["apt", "sudo"],
+        validate: (_vfs, history) => {
+          const usedInstall = history.some(
+            (c) => c.includes("apt") && c.includes("install")
+          );
+          const usedRemove = history.some(
+            (c) => c.includes("apt") && (c.includes("remove") || c.includes("purge"))
+          );
+          return usedInstall && usedRemove;
         },
       },
     ],

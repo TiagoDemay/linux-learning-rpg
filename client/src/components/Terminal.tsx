@@ -211,7 +211,8 @@ export default function Terminal({
         "ls", "cd", "mkdir", "touch", "echo", "cat", "rm", "cp", "mv",
         "pwd", "chmod", "chown", "man", "help", "clear", "whoami", "uname",
         "date", "grep", "find", "ps", "top", "sudo", "apt", "less", "nano",
-        "rmdir",
+        "rmdir", "hostname", "ping", "ip", "ifconfig", "ss", "netstat",
+        "curl", "wget", "dpkg",
       ];
       const match = cmds.find((c) => c.startsWith(input));
       if (match) setInput(match + " ");
@@ -582,6 +583,20 @@ export default function Terminal({
               ["top", "monitor de recursos"],
               ["sudo cmd", "executar como root"],
               ["apt list", "listar pacotes"],
+              ["hostname", "nome do servidor"],
+              ["uname -a", "info do kernel"],
+              ["ping -c 4 ip", "testar rede"],
+              ["ip addr", "interfaces de rede"],
+              ["ss -tuln", "portas abertas"],
+              ["curl -I url", "cabeçalho HTTP"],
+              ["wget url", "baixar arquivo"],
+              ["apt update", "atualizar repos"],
+              ["apt search pkg", "buscar pacote"],
+              ["apt show pkg", "detalhes pacote"],
+              ["apt install pkg", "instalar pacote"],
+              ["apt remove pkg", "remover pacote"],
+              ["dpkg -l", "listar instalados"],
+              ["dpkg -s pkg", "status do pacote"],
             ].map(([cmd, desc]) => (
               <div key={cmd} className="flex justify-between items-center mb-1">
                 <code
@@ -676,6 +691,166 @@ function simulateExtraCommands(cmd: string): string | null {
       : "chown: operando ausente";
   }
 
+  // ── Comandos de rede e sistema (Tundra do Slackware) ──
+
+  if (base === "hostname") {
+    if (parts.includes("-I") || parts.includes("-i")) {
+      return "192.168.1.42";
+    }
+    return "tundra-slackware";
+  }
+
+  if (base === "uname") {
+    if (parts.includes("-a") || parts.includes("-r") || parts.includes("-s")) {
+      return "Linux tundra-slackware 6.8.0-51-generic #52-Ubuntu SMP PREEMPT_DYNAMIC Mon Jan 13 17:58:04 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux";
+    }
+    return "Linux";
+  }
+
+  if (base === "ping") {
+    const target = parts.find((p) => !p.startsWith("-") && p !== "ping") || "<host>";
+    const count = (() => {
+      const ci = parts.indexOf("-c");
+      return ci !== -1 ? parseInt(parts[ci + 1] || "4", 10) : 4;
+    })();
+    const lines = [
+      `PING ${target} (${target === "8.8.8.8" ? "8.8.8.8" : "93.184.216.34"}): 56 bytes de dados`,
+    ];
+    for (let i = 0; i < Math.min(count, 4); i++) {
+      lines.push(`64 bytes de ${target}: icmp_seq=${i} ttl=118 tempo=12.${10 + i * 3} ms`);
+    }
+    lines.push("");
+    lines.push(`--- ${target} estatísticas de ping ---`);
+    lines.push(`${count} pacotes transmitidos, ${count} recebidos, 0% de perda de pacotes`);
+    lines.push(`rtt min/avg/max/mdev = 12.1/12.4/12.9/0.3 ms`);
+    return lines.join("\n");
+  }
+
+  if (base === "ip") {
+    const sub = parts[1] || "";
+    if (sub === "addr" || sub === "a") {
+      return [
+        "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN",
+        "    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00",
+        "    inet 127.0.0.1/8 scope host lo",
+        "2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP",
+        "    link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff",
+        "    inet 192.168.1.42/24 brd 192.168.1.255 scope global eth0",
+      ].join("\n");
+    }
+    if (sub === "route" || sub === "r") {
+      return [
+        "default via 192.168.1.1 dev eth0 proto dhcp src 192.168.1.42 metric 100",
+        "192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.42",
+      ].join("\n");
+    }
+    return "Uso: ip addr | ip route | ip link";
+  }
+
+  if (base === "ifconfig") {
+    return [
+      "eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500",
+      "        inet 192.168.1.42  netmask 255.255.255.0  broadcast 192.168.1.255",
+      "        ether 02:42:ac:11:00:02  txqueuelen 0  (Ethernet)",
+      "lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536",
+      "        inet 127.0.0.1  netmask 255.0.0.0",
+    ].join("\n");
+  }
+
+  if (base === "ss") {
+    return [
+      "Netid  State   Recv-Q  Send-Q  Local Address:Port   Peer Address:Port",
+      "tcp    LISTEN  0       128     0.0.0.0:22           0.0.0.0:*",
+      "tcp    LISTEN  0       128     0.0.0.0:80           0.0.0.0:*",
+      "tcp    LISTEN  0       128     127.0.0.1:3306       0.0.0.0:*",
+      "udp    UNCONN  0       0       0.0.0.0:68           0.0.0.0:*",
+    ].join("\n");
+  }
+
+  if (base === "netstat") {
+    return [
+      "Conexões Internet ativas (apenas servidores)",
+      "Proto Recv-Q Send-Q Endereço Local          Endereço Remoto         Estado",
+      "tcp        0      0 0.0.0.0:22              0.0.0.0:*               OUÇA",
+      "tcp        0      0 0.0.0.0:80              0.0.0.0:*               OUÇA",
+    ].join("\n");
+  }
+
+  if (base === "curl") {
+    const url = parts.find((p) => p.startsWith("http")) || "<url>";
+    const isHead = parts.includes("-I") || parts.includes("--head");
+    if (isHead) {
+      return [
+        "HTTP/2 200",
+        "content-type: text/html; charset=UTF-8",
+        "server: ECS (nyb/1D2E)",
+        "content-length: 1256",
+        `date: ${new Date().toUTCString()}`,
+        "(Simulado — cabeçalho HTTP de " + url + ")",
+      ].join("\n");
+    }
+    return `(Simulado) Conteúdo de ${url}\n<!DOCTYPE html><html><body>Exemplo</body></html>`;
+  }
+
+  if (base === "wget") {
+    if (parts.includes("--help") || parts.includes("-h")) {
+      return [
+        "Uso: wget [OPÇÕES] [URL]",
+        "  -O arquivo   salvar com nome específico",
+        "  -q           modo silencioso",
+        "  -c           continuar download interrompido",
+        "  --help       mostrar esta ajuda",
+      ].join("\n");
+    }
+    const url = parts.find((p) => p.startsWith("http")) || "<url>";
+    return [
+      `--${new Date().toISOString()}-- ${url}`,
+      "Resolvendo host... OK",
+      "Conectando... conectado.",
+      "Requisição HTTP enviada, aguardando resposta... 200 OK",
+      "Tamanho: 1256 (1,2K) [text/html]",
+      "Salvo em: 'index.html'",
+      "(Simulado)",
+    ].join("\n");
+  }
+
+  if (base === "dpkg") {
+    const flag = parts[1] || "";
+    if (flag === "-l" || flag === "--list") {
+      return [
+        "Desejado=Desconhecido/Instalar/Remover/Purgar/Manter",
+        "|Estado=Não/Inst/Conf-files/desempacotado/halF-conf/Meia-inst/aguard-trig/Trig-pend",
+        "||/ Nome                   Versão               Arquitetura  Descrição",
+        "+++-======================-===================-============-==================================",
+        "ii  bash                   5.2.15-2ubuntu1     amd64        GNU Bourne Again SHell",
+        "ii  coreutils              9.4-2ubuntu1        amd64        GNU core utilities",
+        "ii  grep                   3.11-4build1        amd64        GNU grep, egrep e fgrep",
+        "ii  curl                   8.5.0-2ubuntu10     amd64        ferramenta de transferência de URL",
+        "ii  wget                   1.21.4-1ubuntu4     amd64        recuperador de arquivos da rede",
+        "ii  openssh-client         1:9.6p1-3ubuntu13   amd64        cliente SSH seguro",
+        "ii  net-tools              2.10-0.1ubuntu4     amd64        ferramentas de rede NET-3",
+      ].join("\n");
+    }
+    if (flag === "-s" || flag === "--status") {
+      const pkg = parts[2] || "bash";
+      return [
+        `Package: ${pkg}`,
+        "Status: install ok installed",
+        "Priority: required",
+        "Section: shells",
+        `Installed-Size: ${Math.floor(Math.random() * 5000) + 1000}`,
+        `Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>`,
+        `Version: 5.2.15-2ubuntu1`,
+        `Description: ${pkg} - pacote instalado no sistema (simulado)`,
+      ].join("\n");
+    }
+    if (flag === "-i" || flag === "--install") {
+      const deb = parts[2] || "<arquivo.deb>";
+      return `Selecionando pacote previamente desselecionado ${deb}.\nDesempacotando ${deb}...\nConfigurando ${deb}... Pronto.`;
+    }
+    return "Uso: dpkg -l | dpkg -s <pacote> | dpkg -i <arquivo.deb>";
+  }
+
   return null; // não é um comando simulado — deixa o VFS tratar
 }
 
@@ -714,12 +889,60 @@ function simulateApt(args: string[]): string {
       `Configurando ${pkg}... Pronto`,
     ].join("\n");
   }
+  if (sub === "remove" || sub === "purge") {
+    const pkg = args[1] || "<pacote>";
+    return [
+      `Lendo listas de pacotes... Pronto`,
+      `Os seguintes pacotes serão REMOVIDOS:`,
+      `  ${pkg}`,
+      `0 pacotes atualizados, 0 instalados, 1 a remover.`,
+      `Removendo ${pkg}... Pronto`,
+      `Processando gatilhos para man-db... Pronto`,
+    ].join("\n");
+  }
+  if (sub === "search") {
+    const term = args[1] || "";
+    return [
+      `Ordenando... Pronto`,
+      `Pesquisa completa.`,
+      `${term}/noble 8.5.0-2ubuntu10 amd64`,
+      `  Ferramenta de transferência de URL`,
+      `${term}-doc/noble 8.5.0-2ubuntu10 all`,
+      `  Documentação para ${term}`,
+      `lib${term}/noble 8.5.0-2ubuntu10 amd64`,
+      `  Biblioteca easy-to-use client-side URL transfer`,
+    ].join("\n");
+  }
+  if (sub === "show") {
+    const pkg = args[1] || "<pacote>";
+    return [
+      `Package: ${pkg}`,
+      `Version: 8.5.0-2ubuntu10`,
+      `Priority: optional`,
+      `Section: web`,
+      `Installed-Size: 1234 kB`,
+      `Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>`,
+      `Description: ${pkg} - ferramenta de transferência de URL`,
+      `  Suporta HTTP, HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP e FILE.`,
+    ].join("\n");
+  }
+  if (sub === "upgrade") {
+    return [
+      "Lendo listas de pacotes... Pronto",
+      "Construindo árvore de dependências... Pronto",
+      "Calculando atualização... Pronto",
+      "0 pacotes atualizados, 0 instalados, 0 a remover e 0 não atualizados.",
+    ].join("\n");
+  }
   return [
     "Uso: apt [opções] comando",
     "  update   - atualizar lista de pacotes",
+    "  upgrade  - atualizar pacotes instalados",
     "  install  - instalar pacotes",
     "  remove   - remover pacotes",
+    "  purge    - remover pacotes e configurações",
     "  list     - listar pacotes",
     "  search   - buscar pacotes",
+    "  show     - mostrar detalhes de um pacote",
   ].join("\n");
 }

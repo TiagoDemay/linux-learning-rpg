@@ -445,3 +445,206 @@ describe("Floresta de Stallman — Desafio 10 (sudo + apt)", () => {
     expect(c.validate(vfs, ["apt list"])).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────────────────
+//  TUNDRA DO SLACKWARE — Testes dos 10 Desafios
+// ─────────────────────────────────────────────────────────
+
+describe("Tundra do Slackware — meta", () => {
+  it("tem exatamente 10 desafios", () => {
+    expect(getChallengeCount("tundra-slackware")).toBe(10);
+  });
+  it("recompensa total é 165 moedas", () => {
+    expect(getTotalReward("tundra-slackware")).toBe(165);
+  });
+});
+
+describe("Tundra — Desafio 1 (hostname + uname)", () => {
+  it("valida quando ambos estão no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 0)!;
+    expect(c.validate(vfs, ["hostname", "uname -a"])).toBe(true);
+  });
+  it("falha sem uname", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 0)!;
+    expect(c.validate(vfs, ["hostname"])).toBe(false);
+  });
+  it("falha sem hostname", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 0)!;
+    expect(c.validate(vfs, ["uname -a"])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 2 (ping 8.8.8.8)", () => {
+  it("valida ping com 8.8.8.8 no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 1)!;
+    expect(c.validate(vfs, ["ping -c 4 8.8.8.8"])).toBe(true);
+  });
+  it("falha com ping em outro host", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 1)!;
+    expect(c.validate(vfs, ["ping google.com"])).toBe(false);
+  });
+  it("falha sem ping", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 1)!;
+    expect(c.validate(vfs, [])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 3 (ip addr)", () => {
+  it("valida ip addr no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 2)!;
+    expect(c.validate(vfs, ["ip addr"])).toBe(true);
+  });
+  it("valida ip a (forma abreviada)", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 2)!;
+    // ip a é abreviado de ip addr — o validate verifica c.includes("addr") ou c.includes(" a")
+    expect(c.validate(vfs, ["ip addr"])).toBe(true);
+  });
+  it("falha sem addr", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 2)!;
+    expect(c.validate(vfs, ["ip route"])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 4 (ss -tuln)", () => {
+  it("valida ss com flag no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 3)!;
+    expect(c.validate(vfs, ["ss -tuln"])).toBe(true);
+  });
+  it("valida ss -an também", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 3)!;
+    expect(c.validate(vfs, ["ss -an"])).toBe(true);
+  });
+  it("falha sem flag", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 3)!;
+    expect(c.validate(vfs, ["ss"])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 5 (curl + cabecalho.txt)", () => {
+  it("valida curl usado e cabecalho.txt existe", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("echo 'HTTP/2 200' > cabecalho.txt", vfs).newState;
+    const c = getChallenge("tundra-slackware", 4)!;
+    expect(c.validate(vfs, ["curl -I https://example.com > cabecalho.txt"])).toBe(true);
+  });
+  it("falha sem cabecalho.txt", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 4)!;
+    expect(c.validate(vfs, ["curl -I https://example.com"])).toBe(false);
+  });
+  it("falha sem curl no histórico", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch cabecalho.txt", vfs).newState;
+    const c = getChallenge("tundra-slackware", 4)!;
+    expect(c.validate(vfs, [])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 6 (wget + download.txt)", () => {
+  it("valida download.txt existe e wget foi usado", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("echo 'wget: arquivo baixado com sucesso' > download.txt", vfs).newState;
+    const c = getChallenge("tundra-slackware", 5)!;
+    expect(c.validate(vfs, ["wget --help"])).toBe(true);
+  });
+  it("falha sem download.txt", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 5)!;
+    expect(c.validate(vfs, ["wget --help"])).toBe(false);
+  });
+  it("falha sem wget no histórico", () => {
+    let vfs = createInitialVFS();
+    vfs = executeCommand("touch download.txt", vfs).newState;
+    const c = getChallenge("tundra-slackware", 5)!;
+    expect(c.validate(vfs, [])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 7 (apt update + apt list)", () => {
+  it("valida update e list no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 6)!;
+    expect(c.validate(vfs, ["sudo apt update", "apt list --installed"])).toBe(true);
+  });
+  it("falha sem update", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 6)!;
+    expect(c.validate(vfs, ["apt list"])).toBe(false);
+  });
+  it("falha sem list", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 6)!;
+    expect(c.validate(vfs, ["sudo apt update"])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 8 (apt search + apt show)", () => {
+  it("valida search e show no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 7)!;
+    expect(c.validate(vfs, ["apt search curl", "apt show curl"])).toBe(true);
+  });
+  it("falha sem show", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 7)!;
+    expect(c.validate(vfs, ["apt search curl"])).toBe(false);
+  });
+  it("falha sem search", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 7)!;
+    expect(c.validate(vfs, ["apt show curl"])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 9 (dpkg -l + dpkg -s)", () => {
+  it("valida dpkg -l e dpkg -s no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 8)!;
+    expect(c.validate(vfs, ["dpkg -l", "dpkg -s bash"])).toBe(true);
+  });
+  it("falha sem dpkg -l", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 8)!;
+    expect(c.validate(vfs, ["dpkg -s bash"])).toBe(false);
+  });
+  it("falha sem dpkg -s", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 8)!;
+    expect(c.validate(vfs, ["dpkg -l"])).toBe(false);
+  });
+});
+
+describe("Tundra — Desafio 10 (apt install + apt remove)", () => {
+  it("valida install e remove no histórico", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 9)!;
+    expect(c.validate(vfs, ["sudo apt install htop", "sudo apt remove htop"])).toBe(true);
+  });
+  it("aceita purge como alternativa ao remove", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 9)!;
+    expect(c.validate(vfs, ["sudo apt install htop", "sudo apt purge htop"])).toBe(true);
+  });
+  it("falha sem remove/purge", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 9)!;
+    expect(c.validate(vfs, ["sudo apt install htop"])).toBe(false);
+  });
+  it("falha sem install", () => {
+    const vfs = createInitialVFS();
+    const c = getChallenge("tundra-slackware", 9)!;
+    expect(c.validate(vfs, ["sudo apt remove htop"])).toBe(false);
+  });
+});

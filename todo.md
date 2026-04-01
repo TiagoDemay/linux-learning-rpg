@@ -62,3 +62,8 @@
 ## Reset / Reinício
 - [x] Botão "Reiniciar Desafio" no terminal (reseta VFS + progresso do nível atual)
 - [x] Botão "Reiniciar Jogo" no HUD (limpa todo o localStorage e volta ao início)
+
+## Desafios da Tundra do Slackware
+- [x] 10 desafios de rede e pacotes (ping, ip, ss, netstat, curl, wget, apt, dpkg, uname, hostname)
+- [x] Suporte simulado para novos comandos de rede no terminal
+- [x] Testes dos novos desafios (87 testes passando)
