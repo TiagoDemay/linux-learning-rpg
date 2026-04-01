@@ -168,3 +168,6 @@
 
 ## Exportação CSV
 - [x] Botão "Exportar CSV" no ranking de cada torneio do histórico
+
+## Visual do Mapa
+- [x] Substituir linhas retas amarelas por caminhos medievais estilizados (SVG curvo, estrada de terra)

@@ -90,9 +90,22 @@ export default function RPGMap({
           style={{ zIndex: 1 }}
         >
           <defs>
-            <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto">
-              <path d="M0,0 L4,2 L0,4 Z" fill="#8b6914" opacity="0.6" />
-            </marker>
+            {/* Filtro de textura para dar aspecto de terra/pergaminho */}
+            <filter id="road-texture" x="-5%" y="-5%" width="110%" height="110%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.3" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            {/* Gradiente para estradas ativas */}
+            <linearGradient id="road-active" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#7a5c2e" />
+              <stop offset="50%" stopColor="#a07840" />
+              <stop offset="100%" stopColor="#7a5c2e" />
+            </linearGradient>
+            {/* Gradiente para estradas inativas */}
+            <linearGradient id="road-inactive" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4a3820" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#4a3820" stopOpacity="0.3" />
+            </linearGradient>
           </defs>
           {CONNECTIONS.map(([fromId, toId]) => {
             const from = getLevelById(fromId);
@@ -100,19 +113,68 @@ export default function RPGMap({
             if (!from || !to) return null;
             const isActive =
               unlockedLevels.includes(fromId) && unlockedLevels.includes(toId);
+
+            // Calcular ponto de controle para curva quadrática Bézier
+            // Deslocar o ponto de controle perpendicularmente ao caminho para criar curva natural
+            const mx = (from.x + to.x) / 2;
+            const my = (from.y + to.y) / 2;
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            // Curvatura proporcional ao comprimento, máx 8 unidades
+            const curve = Math.min(len * 0.18, 8);
+            // Perpendicular normalizado com leve variação determinística por par de nós
+            const seed = (fromId.charCodeAt(0) + toId.charCodeAt(0)) % 2 === 0 ? 1 : -1;
+            const cpx = mx + ((-dy / len) * curve * seed);
+            const cpy = my + ((dx / len) * curve * seed);
+            const d = `M ${from.x} ${from.y} Q ${cpx} ${cpy} ${to.x} ${to.y}`;
+
             return (
-              <line
-                key={`${fromId}-${toId}`}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                stroke={isActive ? "#8b6914" : "#c4a96a"}
-                strokeWidth={isActive ? "0.5" : "0.3"}
-                strokeDasharray={isActive ? "none" : "1,1"}
-                opacity={isActive ? 0.8 : 0.4}
-                markerEnd={isActive ? "url(#arrowhead)" : undefined}
-              />
+              <g key={`${fromId}-${toId}`}>
+                {/* Sombra da estrada */}
+                <path
+                  d={d}
+                  fill="none"
+                  stroke="#1a0f00"
+                  strokeWidth={isActive ? "1.4" : "0.9"}
+                  strokeLinecap="round"
+                  opacity={isActive ? 0.35 : 0.2}
+                  transform="translate(0.15, 0.2)"
+                />
+                {/* Borda externa da estrada (terra escura) */}
+                <path
+                  d={d}
+                  fill="none"
+                  stroke={isActive ? "#5c3d1a" : "#3a2a12"}
+                  strokeWidth={isActive ? "1.2" : "0.7"}
+                  strokeLinecap="round"
+                  opacity={isActive ? 0.7 : 0.3}
+                  filter="url(#road-texture)"
+                />
+                {/* Corpo principal da estrada */}
+                <path
+                  d={d}
+                  fill="none"
+                  stroke={isActive ? "url(#road-active)" : "url(#road-inactive)"}
+                  strokeWidth={isActive ? "0.7" : "0.4"}
+                  strokeLinecap="round"
+                  strokeDasharray={isActive ? "none" : "1.5,0.8"}
+                  opacity={isActive ? 0.85 : 0.45}
+                  filter="url(#road-texture)"
+                />
+                {/* Linha central pontilhada (apenas estradas ativas) */}
+                {isActive && (
+                  <path
+                    d={d}
+                    fill="none"
+                    stroke="#d4a96a"
+                    strokeWidth="0.15"
+                    strokeLinecap="round"
+                    strokeDasharray="0.6,1.2"
+                    opacity={0.5}
+                  />
+                )}
+              </g>
             );
           })}
         </svg>
