@@ -190,25 +190,27 @@ export default function HUD({
           🏆
         </button>
 
-        {/* Reset game button */}
-        <button
-          onClick={() => {
-            if (window.confirm("Reiniciar o jogo do zero? Todo o progresso e moedas serão perdidos.")) {
-              onResetGame();
-            }
-          }}
-          title="Reiniciar Jogo"
-          className="px-2 py-1.5 rounded transition-all hover:scale-105 hover:opacity-90"
-          style={{
-            background: "rgba(180,40,40,0.18)",
-            border: "1px solid #8b2020",
-            color: "#ff8080",
-            fontSize: "0.7rem",
-            cursor: "pointer",
-          }}
-        >
-          🔄
-        </button>
+        {/* Reset game button — visível apenas para admin */}
+        {user?.role === "admin" && (
+          <button
+            onClick={() => {
+              if (window.confirm("Reiniciar o jogo do zero? Todo o progresso e moedas serão perdidos.")) {
+                onResetGame();
+              }
+            }}
+            title="Reiniciar Jogo (Admin)"
+            className="px-2 py-1.5 rounded transition-all hover:scale-105 hover:opacity-90"
+            style={{
+              background: "rgba(180,40,40,0.18)",
+              border: "1px solid #8b2020",
+              color: "#ff8080",
+              fontSize: "0.7rem",
+              cursor: "pointer",
+            }}
+          >
+            🔄
+          </button>
+        )}
 
         {/* View toggle */}
         <div className="flex rounded overflow-hidden" style={{ border: "2px solid #8b6914" }}>

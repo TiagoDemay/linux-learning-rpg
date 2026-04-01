@@ -79,3 +79,6 @@
 - [x] Tela de ranking com nome, moedas, territórios e posição
 - [x] Botão de ranking (🏆) no HUD
 - [x] Testes das procedures de ranking (93 testes passando)
+
+## Controle de Acesso
+- [x] Botão de reset visível apenas para usuário com role "admin"
