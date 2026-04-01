@@ -101,3 +101,13 @@
 ## Ajustes de Posição dos Marcadores
 - [x] Floresta de Stallman: mover para baixo, ao lado da pedra com o GNU (x:14, y:28)
 - [x] Reposicionar os 9 marcadores restantes próximos aos símbolos visuais (mais para baixo)
+
+## Painel do Professor (/professor)
+- [x] tRPC procedure: getStudents (lista todos os alunos com progresso)
+- [x] Página ProfessorPanel.tsx com tabela de alunos
+- [x] Colunas: posição, nome, moedas, territórios conquistados, desafios completos, último acesso
+- [x] Filtro por nome e ordenação por coluna
+- [x] Auto-refresh a cada 30 segundos
+- [x] Rota /professor protegida por role admin no App.tsx
+- [x] Botão de acesso ao painel no HUD (apenas admin) 📚
+- [x] Testes da procedure getStudents (96 testes passando)

@@ -190,6 +190,27 @@ export default function HUD({
           🏆
         </button>
 
+        {/* Professor panel button — visível apenas para admin */}
+        {user?.role === "admin" && (
+          <a
+            href="/professor"
+            title="Painel do Professor"
+            className="px-2 py-1.5 rounded transition-all hover:scale-105"
+            style={{
+              background: "rgba(39,100,180,0.18)",
+              border: "1px solid #2060b0",
+              color: "#80b8ff",
+              fontSize: "0.7rem",
+              cursor: "pointer",
+              textDecoration: "none",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            📚
+          </a>
+        )}
+
         {/* Reset game button — visível apenas para admin */}
         {user?.role === "admin" && (
           <button

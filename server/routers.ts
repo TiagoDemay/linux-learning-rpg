@@ -3,7 +3,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { getUserProgress, upsertUserProgress, getTopPlayers } from "./db";
+import { TRPCError } from "@trpc/server";
+import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -61,6 +62,31 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+  }),
+
+  professor: router({
+    /** Lista todos os alunos com progresso — exclusivo para admin */
+    getStudents: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+      }
+      const rows = await getAllStudents();
+      return rows.map((r, idx) => ({
+        position: idx + 1,
+        name: r.name ?? "Aventureiro Anônimo",
+        email: r.email ?? null,
+        coins: r.coins ?? 0,
+        unlockedCount: Array.isArray(r.unlockedLevels) ? (r.unlockedLevels as string[]).length : 1,
+        completedCount: Array.isArray(r.completedLevels) ? (r.completedLevels as string[]).length : 0,
+        completedLevels: (r.completedLevels ?? []) as string[],
+        currentLevel: r.currentLevel ?? "floresta-stallman",
+        challengeProgress: (r.challengeProgress ?? {}) as Record<string, number>,
+        lastSignedIn: r.lastSignedIn,
+        progressUpdatedAt: r.progressUpdatedAt ?? null,
+        joinedAt: r.createdAt,
+        role: r.role,
+      }));
+    }),
   }),
 
   ranking: router({

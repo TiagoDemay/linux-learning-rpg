@@ -95,6 +95,33 @@ export async function upsertUserProgress(data: {
   }
 }
 
+/** Retorna todos os alunos com progresso completo — para o painel do professor */
+export async function getAllStudents() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select({
+      userId: userProgress.userId,
+      coins: userProgress.coins,
+      unlockedLevels: userProgress.unlockedLevels,
+      completedLevels: userProgress.completedLevels,
+      currentLevel: userProgress.currentLevel,
+      challengeProgress: userProgress.challengeProgress,
+      progressUpdatedAt: userProgress.updatedAt,
+      name: users.name,
+      email: users.email,
+      lastSignedIn: users.lastSignedIn,
+      createdAt: users.createdAt,
+      role: users.role,
+    })
+    .from(users)
+    .leftJoin(userProgress, eq(userProgress.userId, users.id))
+    .orderBy(desc(userProgress.coins));
+
+  return rows;
+}
+
 /** Retorna o top N jogadores ordenados por moedas (para o ranking) */
 export async function getTopPlayers(limit = 20) {
   const db = await getDb();
