@@ -97,3 +97,6 @@
 
 ## Correções de Layout
 - [x] Centralizar mapa verticalmente na tela (remover espaço vazio abaixo)
+
+## Ajustes de Posição dos Marcadores
+- [x] Floresta de Stallman: mover para baixo, ao lado da pedra com o GNU (x:14, y:28)
