@@ -851,6 +851,440 @@ function simulateExtraCommands(cmd: string): string | null {
     return "Uso: dpkg -l | dpkg -s <pacote> | dpkg -i <arquivo.deb>";
   }
 
+  // ── Compilação & Scripting (Montanhas de Kernighan) ──
+
+  if (base === "which") {
+    const tool = parts[1] || "";
+    const paths: Record<string, string> = {
+      bash: "/bin/bash", sh: "/bin/sh", python3: "/usr/bin/python3",
+      python: "/usr/bin/python3", gcc: "/usr/bin/gcc", make: "/usr/bin/make",
+      git: "/usr/bin/git", curl: "/usr/bin/curl", wget: "/usr/bin/wget",
+      vim: "/usr/bin/vim", nano: "/bin/nano", grep: "/usr/bin/grep",
+      awk: "/usr/bin/awk", sed: "/usr/bin/sed",
+    };
+    return paths[tool] ? paths[tool] : `which: ${tool}: não encontrado`;
+  }
+
+  if (base === "env") {
+    return [
+      "HOME=/home/user", "USER=user", "SHELL=/bin/bash",
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "LANG=pt_BR.UTF-8", "TERM=xterm-256color",
+      "HOSTNAME=terras-do-kernel", "LOGNAME=user",
+    ].join("\n");
+  }
+
+  if (base === "printenv") {
+    const varName = parts[1];
+    const envVars: Record<string, string> = {
+      HOME: "/home/user", USER: "user", SHELL: "/bin/bash",
+      PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      LANG: "pt_BR.UTF-8", TERM: "xterm-256color",
+      HOSTNAME: "terras-do-kernel", LOGNAME: "user",
+    };
+    if (varName) return envVars[varName] ?? `(vazio)`;
+    return Object.entries(envVars).map(([k, v]) => `${k}=${v}`).join("\n");
+  }
+
+  if (base === "export") {
+    const assignment = parts.slice(1).join(" ");
+    if (!assignment) return "Uso: export VARIAVEL=valor";
+    return `(variável exportada: ${assignment})`;
+  }
+
+  if (base === "unset") {
+    const varName = parts[1] || "";
+    return varName ? `(variável '${varName}' removida do ambiente)` : "Uso: unset VARIAVEL";
+  }
+
+  if (base === "alias") {
+    const def = parts.slice(1).join(" ");
+    if (!def) return "alias ll='ls -la'\nalias la='ls -A'\nalias grep='grep --color=auto'";
+    return `(alias criado: ${def})`;
+  }
+
+  if (base === "source" || (base === "." && parts[1])) {
+    const file = parts[1] || "";
+    return `(arquivo '${file}' carregado no shell atual)`;
+  }
+
+  if (base === "sed") {
+    if (parts.includes("--help") || parts.includes("-h")) {
+      return "Uso: sed [OPÇÕES] 'expressão' [arquivo]\n  -n   suprimir saída automática\n  -i   editar arquivo in-place\n  's/padrão/substituição/g'  substituir";
+    }
+    const expr = parts.find((p) => p.startsWith("s/") || p.includes("/"));
+    const file = parts[parts.length - 1];
+    return `(sed: expressão '${expr || parts[1]}' aplicada em '${file}') — saída simulada`;
+  }
+
+  if (base === "awk") {
+    if (parts.includes("--help")) return "Uso: awk 'programa' [arquivo]\n  '{print $1}'  imprimir primeira coluna";
+    return "(awk: programa executado — saída simulada)";
+  }
+
+  if (base === "gcc") {
+    const src = parts.find((p) => p.endsWith(".c")) || "<arquivo.c>";
+    const outIdx = parts.indexOf("-o");
+    const out = outIdx !== -1 ? parts[outIdx + 1] : "a.out";
+    if (parts.includes("--version")) return "gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0";
+    if (parts.includes("--help")) return "Uso: gcc [opções] arquivo...\n  -o saída   especificar arquivo de saída\n  -Wall      habilitar avisos";
+    return `(Compilando ${src} → ${out}... Pronto) — simulado`;
+  }
+
+  if (base === "make") {
+    if (parts.includes("--version")) return "GNU Make 4.3";
+    return "make: 'all' está atualizado. (simulado)";
+  }
+
+  // ── Serviços & Daemons (Pântano de Systemd) ──
+
+  if (base === "systemctl") {
+    const sub = parts[1] || "";
+    const service = parts[2] || "";
+    if (sub === "status") {
+      const svc = service || "sistema";
+      return [
+        `● ${svc}.service - ${svc} daemon`,
+        `     Loaded: loaded (/lib/systemd/system/${svc}.service; enabled)`,
+        `     Active: active (running) since ${new Date().toLocaleString("pt-BR")}`,
+        `   Main PID: ${Math.floor(Math.random() * 9000) + 1000}`,
+        `     CGroup: /system.slice/${svc}.service`,
+      ].join("\n");
+    }
+    if (sub === "start") return service ? `(${service} iniciado com sucesso — simulado)` : "Uso: systemctl start <serviço>";
+    if (sub === "stop") return service ? `(${service} parado com sucesso — simulado)` : "Uso: systemctl stop <serviço>";
+    if (sub === "restart") return service ? `(${service} reiniciado — simulado)` : "Uso: systemctl restart <serviço>";
+    if (sub === "enable") return service ? `(${service} habilitado para iniciar no boot — simulado)` : "Uso: systemctl enable <serviço>";
+    if (sub === "disable") return service ? `(${service} desabilitado — simulado)` : "Uso: systemctl disable <serviço>";
+    if (sub === "list-units" || sub === "list") {
+      return [
+        "UNIT                    LOAD   ACTIVE SUB     DESCRIPTION",
+        "ssh.service             loaded active running OpenBSD Secure Shell server",
+        "cron.service            loaded active running Regular background program processing daemon",
+        "networking.service      loaded active running Raise network interfaces",
+        "systemd-journald.service loaded active running Journal Service",
+      ].join("\n");
+    }
+    return [
+      "Uso: systemctl [COMANDO] [SERVIÇO]",
+      "  start/stop/restart/status <serviço>",
+      "  enable/disable <serviço>",
+      "  list-units",
+    ].join("\n");
+  }
+
+  if (base === "journalctl") {
+    const nIdx = parts.indexOf("-n");
+    const n = nIdx !== -1 ? parseInt(parts[nIdx + 1] || "20", 10) : 20;
+    const lines: string[] = [];
+    const now = new Date();
+    for (let i = Math.min(n, 10); i >= 0; i--) {
+      const t = new Date(now.getTime() - i * 60000);
+      const ts = t.toLocaleString("pt-BR");
+      lines.push(`${ts} tundra-slackware systemd[1]: Started Session ${100 + i} of User user.`);
+    }
+    lines.push("-- Fim do log --");
+    return lines.join("\n");
+  }
+
+  if (base === "crontab") {
+    if (parts.includes("-l")) return "# Nenhuma tarefa agendada para o usuário atual. (simulado)";
+    if (parts.includes("-e")) return "(Simulação: use echo '* * * * * comando' >> /etc/cron.d/meu-cron para agendar)";
+    return "Uso: crontab -l (listar) | crontab -e (editar)";
+  }
+
+  if (base === "df") {
+    return [
+      "Sist.Arq.       Tamanho  Usado Disponível Uso% Montado em",
+      "/dev/sda1            20G   5,2G       14G  28% /",
+      "tmpfs               994M      0      994M   0% /dev/shm",
+      "/dev/sda2           100G    42G       53G  45% /home",
+    ].join("\n");
+  }
+
+  if (base === "du") {
+    const target = parts.find((p) => !p.startsWith("-") && p !== "du") || ".";
+    return `4,0K\t${target}\n(simulado)`;
+  }
+
+  if (base === "free") {
+    return [
+      "               total       usado       livre     compart.  buff/cache   disponível",
+      "Mem.:        2033888      421340      987412       12544      625136     1456204",
+      "Swap:        2097148           0     2097148",
+    ].join("\n");
+  }
+
+  if (base === "kill") {
+    if (parts.includes("-l")) {
+      return [
+        " 1) SIGHUP   2) SIGINT   3) SIGQUIT  4) SIGILL   5) SIGTRAP",
+        " 6) SIGABRT  7) SIGBUS   8) SIGFPE   9) SIGKILL 10) SIGUSR1",
+        "11) SIGSEGV 12) SIGUSR2 13) SIGPIPE 14) SIGALRM 15) SIGTERM",
+        "19) SIGSTOP 20) SIGTSTP 21) SIGTTIN 22) SIGTTOU 23) SIGURG",
+      ].join("\n");
+    }
+    const pid = parts.find((p) => /^\d+$/.test(p));
+    return pid ? `(sinal enviado ao processo ${pid} — simulado)` : "Uso: kill [-sinal] PID";
+  }
+
+  // ── Git & Versionamento (Reino de Torvalds) ──
+
+  if (base === "git") {
+    const sub = parts[1] || "";
+    const rest = parts.slice(2).join(" ");
+    if (sub === "init") return "Repositório Git vazio inicializado em /home/user/.git/ (simulado)";
+    if (sub === "status") return [
+      "No ramo main\n\nAlterações não rastreadas para commit:",
+      "  (use \"git add <arquivo>...\" para incluir no que será commitado)",
+      "\t\x1b[31mmodificado:   README.md\x1b[0m",
+      "\nnenhuma alteração adicionada ao commit",
+    ].join("\n");
+    if (sub === "add") return rest ? `(${rest} adicionado à área de staging — simulado)` : "Uso: git add <arquivo>";
+    if (sub === "commit") {
+      const mIdx = parts.indexOf("-m");
+      const msg = mIdx !== -1 ? parts.slice(mIdx + 1).join(" ").replace(/['"`]/g, "") : "sem mensagem";
+      return `[main (root-commit) a1b2c3d] ${msg}\n 1 arquivo alterado, 1 inserção(+)`;
+    }
+    if (sub === "log") {
+      if (parts.includes("--oneline")) return "a1b2c3d (HEAD -> main) Primeiro commit do reino\nb2c3d4e Commit inicial";
+      return [
+        "commit a1b2c3d4e5f6789012345678901234567890abcdef (HEAD -> main)",
+        "Author: Aventureiro <aventureiro@kernel.org>",
+        `Date:   ${new Date().toLocaleString("pt-BR")}`,
+        "",
+        "    Primeiro commit do reino",
+      ].join("\n");
+    }
+    if (sub === "branch") return rest ? `(branch '${rest}' criada — simulado)` : "* main\n  desenvolvimento";
+    if (sub === "checkout") return rest ? `Mudou para o ramo '${rest}' (simulado)` : "Uso: git checkout <branch>";
+    if (sub === "merge") return rest ? `Mesclando '${rest}'... Merge concluído. (simulado)` : "Uso: git merge <branch>";
+    if (sub === "diff") return "diff --git a/README.md b/README.md\n+++ b/README.md\n+Nova linha adicionada (simulado)";
+    if (sub === "clone") return parts.includes("--help") ? "Uso: git clone <url> [diretório]\n  --depth <n>  clone raso" : "(clone simulado — use git clone <url>)";
+    if (sub === "config") {
+      const key = parts[2] || "";
+      const val = parts.slice(3).join(" ").replace(/['"`]/g, "");
+      return val ? `(${key} configurado como '${val}' — simulado)` : `(lendo ${key}...)`;
+    }
+    if (sub === "remote") return "origin\thttps://github.com/aventureiro/meu-reino.git (fetch)";
+    if (sub === "push" || sub === "pull") return `(git ${sub} simulado — repositório remoto não disponível)`;
+    if (!sub || sub === "--help" || sub === "help") {
+      return [
+        "uso: git [--version] [--help] <comando> [<args>]",
+        "",
+        "Comandos comuns:",
+        "   init       Criar repositório vazio",
+        "   clone      Clonar repositório",
+        "   add        Adicionar arquivos ao staging",
+        "   commit     Gravar alterações",
+        "   status     Mostrar estado da árvore de trabalho",
+        "   log        Mostrar histórico de commits",
+        "   branch     Listar/criar/deletar branches",
+        "   checkout   Mudar de branch",
+        "   merge      Unir branches",
+        "   diff       Mostrar diferenças",
+        "   config     Configurar opções do Git",
+      ].join("\n");
+    }
+    return `git: '${sub}' não é um comando git. Use 'git --help'.`;
+  }
+
+  // ── RPM, YUM & DNF (Planícies de RedHat) ──
+
+  if (base === "rpm") {
+    const flag = parts[1] || "";
+    if (flag === "--version") return "RPM versão 4.18.2";
+    if (flag === "--help" || flag === "-h") return "Uso: rpm [OPÇÕES]\n  -qa    listar todos os pacotes\n  -qi    informações do pacote\n  -ql    listar arquivos do pacote\n  -qf    qual pacote possui arquivo";
+    if (flag === "-qa") {
+      return ["bash-5.2.15-3.fc39.x86_64", "coreutils-9.3-5.fc39.x86_64", "grep-3.11-4.fc39.x86_64",
+        "curl-8.2.1-2.fc39.x86_64", "wget-1.21.4-2.fc39.x86_64", "openssh-8.7p1-38.fc39.x86_64",
+        "vim-enhanced-9.0.2081-1.fc39.x86_64", "git-2.43.0-1.fc39.x86_64"].join("\n");
+    }
+    if (flag === "-qi") {
+      const pkg = parts[2] || "bash";
+      return `Name        : ${pkg}\nVersion     : 5.2.15\nRelease     : 3.fc39\nArchitecture: x86_64\nInstall Date: ${new Date().toLocaleDateString("pt-BR")}\nGroup       : System Environment/Shells\nSize        : 7654321\nSummary     : ${pkg} — pacote do sistema (simulado)`;
+    }
+    if (flag === "-ql") {
+      const pkg = parts[2] || "bash";
+      return `/bin/${pkg}\n/usr/share/man/man1/${pkg}.1.gz\n/etc/${pkg}.bashrc (simulado)`;
+    }
+    return "Uso: rpm --version | rpm -qa | rpm -qi <pacote> | rpm -ql <pacote>";
+  }
+
+  if (base === "yum") {
+    const sub = parts[1] || "";
+    if (sub === "--version") return "4.14.0 (simulado)";
+    if (sub === "list") return "bash.x86_64   5.2.15-3.fc39   @System\ncurl.x86_64   8.2.1-2.fc39   @System\nvim.x86_64    9.0-1.fc39     @System (simulado)";
+    if (sub === "search") return `${parts[2] || "pacote"}/fc39 — pacote encontrado nos repositórios (simulado)`;
+    if (sub === "info") return `Nome: ${parts[2] || "pacote"}\nVersão: 1.0\nDescrição: Pacote simulado do repositório Fedora/RHEL`;
+    if (sub === "install") return `Instalando ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    if (sub === "remove") return `Removendo ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    return "Uso: yum [list|search|install|remove|info|update] [pacote]";
+  }
+
+  if (base === "dnf") {
+    const sub = parts[1] || "";
+    if (sub === "--version") return "dnf 4.14.0 (simulado)";
+    if (sub === "repolist") return "repo id          repo name\nfedora           Fedora 39 - x86_64\nfedora-updates   Fedora 39 - x86_64 - Updates (simulado)";
+    if (sub === "search") return `${parts[2] || "pacote"}.x86_64 — encontrado nos repositórios (simulado)`;
+    if (sub === "info") return `Nome: ${parts[2] || "pacote"}\nVersão: 1.0\nDescrição: Pacote simulado DNF`;
+    if (sub === "install") return `Instalando ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    if (sub === "remove") return `Removendo ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    if (sub === "grouplist") return "Grupos disponíveis:\n  Ferramentas de Desenvolvimento\n  Servidor Web\n  Servidor de Banco de Dados (simulado)";
+    if (sub === "groupinfo") return `Grupo: ${parts.slice(2).join(" ")}\nPacotes obrigatórios: gcc, make, binutils (simulado)`;
+    if (sub === "check-update") return "Nenhuma atualização disponível. (simulado)";
+    if (sub === "history") return "ID  | Comando          | Data              | Ação\n 1  | install bash     | 01/01/2025 10:00  | Install (simulado)";
+    if (sub === "autoremove") return "Nenhum pacote órfão para remover. (simulado)";
+    return "Uso: dnf [search|install|remove|info|repolist|grouplist|history|check-update] [pacote]";
+  }
+
+  // ── APT Avançado (Deserto de Debian) ──
+
+  if (base === "apt-cache") {
+    const sub = parts[1] || "";
+    if (sub === "stats") return "Total de pacotes: 72543\nEspaço total: 142 MB\nTotal de versões: 89234 (simulado)";
+    if (sub === "search") return `${parts[2] || "pacote"} - ferramenta encontrada no cache (simulado)`;
+    if (sub === "show") return `Package: ${parts[2] || "pacote"}\nVersion: 1.0\nDescription: Pacote simulado do cache APT`;
+    if (sub === "depends") return `${parts[2] || "pacote"}\n  Depende: libc6 (>= 2.17)\n  Depende: libssl3 (>= 3.0.0) (simulado)`;
+    if (sub === "rdepends") return `${parts[2] || "pacote"}\n  Dependência reversa de: apt, dpkg (simulado)`;
+    return "Uso: apt-cache [stats|search|show|depends|rdepends] [pacote]";
+  }
+
+  if (base === "apt-get") {
+    const sub = parts[1] || "";
+    if (sub === "update") return "Atingido:1 http://archive.ubuntu.com/ubuntu noble InRelease\nLendo listas de pacotes... Pronto (simulado)";
+    if (sub === "install") return `Instalando ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    if (sub === "remove") return `Removendo ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    if (sub === "clean") return "(cache de pacotes limpo — simulado)";
+    if (sub === "autoremove") return "Nenhum pacote desnecessário para remover. (simulado)";
+    if (sub === "--simulate" || sub === "-s") return `Simulando: ${parts.slice(2).join(" ")}... (nenhuma alteração real feita)`;
+    return "Uso: apt-get [update|install|remove|clean|autoremove|--simulate] [pacote]";
+  }
+
+  if (base === "apt-mark") {
+    const sub = parts[1] || "";
+    if (sub === "showmanual") return "bash\ncoreutils\ncurl\nwget (instalados manualmente — simulado)";
+    if (sub === "showauto") return "libc6\nlibssl3\nlibgcc-s1 (instalados automaticamente — simulado)";
+    if (sub === "hold") return `${parts[2] || "<pacote>"} marcado como retido. (simulado)`;
+    if (sub === "unhold") return `${parts[2] || "<pacote>"} liberado. (simulado)`;
+    return "Uso: apt-mark [showmanual|showauto|hold|unhold] [pacote]";
+  }
+
+  if (base === "dpkg-query") {
+    const flag = parts[1] || "";
+    if (flag === "-l" || flag === "--list") {
+      const filter = parts[2] || "";
+      const pkgs = ["bash", "coreutils", "grep", "curl", "wget", "openssh-client", "vim", "git"];
+      const filtered = filter ? pkgs.filter((p) => p.includes(filter)) : pkgs;
+      return filtered.map((p) => `ii  ${p.padEnd(22)} 1.0-1ubuntu1        amd64        ${p} (simulado)`).join("\n");
+    }
+    if (flag === "-s" || flag === "--status") {
+      const pkg = parts[2] || "bash";
+      return `Package: ${pkg}\nStatus: install ok installed\nVersion: 1.0-1ubuntu1\nDescription: ${pkg} (simulado)`;
+    }
+    return "Uso: dpkg-query -l [pacote] | dpkg-query -s <pacote>";
+  }
+
+  // ── Snap, Cloud & Segurança (Ilhas de Canonical) ──
+
+  if (base === "snap") {
+    const sub = parts[1] || "";
+    if (sub === "--version") return "snap    2.61.3\nsnapd   2.61.3\nseries  16\nubuntu  24.04 (simulado)";
+    if (sub === "list") return "Nome            Versão    Rev  Rastreamento  Editor    Notas\ncore22          20240111  1380 latest/stable  canonical  base (simulado)";
+    if (sub === "find") return `${parts[2] || "pacote"} — encontrado na Snap Store (simulado)`;
+    if (sub === "info") return `nome:      ${parts[2] || "snap"}\nversão:    1.0\neditora:   canonical\ndescrição: Pacote snap simulado`;
+    if (sub === "install") return `${parts[2] || "<snap>"} instalado com sucesso (simulado)`;
+    if (sub === "remove") return `${parts[2] || "<snap>"} removido com sucesso (simulado)`;
+    if (sub === "refresh") return "Todos os snaps estão atualizados. (simulado)";
+    return "Uso: snap [list|find|info|install|remove|refresh] [nome]";
+  }
+
+  if (base === "lsb_release") {
+    if (parts.includes("-a") || parts.includes("--all")) {
+      return [
+        "No LSB modules are available.",
+        "Distributor ID: Ubuntu",
+        "Description:    Ubuntu 24.04.1 LTS",
+        "Release:        24.04",
+        "Codename:       noble",
+      ].join("\n");
+    }
+    return "Ubuntu 24.04.1 LTS";
+  }
+
+  if (base === "ufw") {
+    const sub = parts[1] || "";
+    if (sub === "status") return "Status: inativo (simulado)\nPara ativar: ufw enable";
+    if (sub === "enable") return "Firewall ativado e habilitado no boot do sistema. (simulado)";
+    if (sub === "disable") return "Firewall parado e desabilitado no boot do sistema. (simulado)";
+    if (sub === "allow") return `Regra adicionada: permitir ${parts[2] || "<porta>"}. (simulado)`;
+    if (sub === "deny") return `Regra adicionada: negar ${parts[2] || "<porta>"}. (simulado)`;
+    if (sub === "--help" || sub === "-h") return "Uso: ufw [enable|disable|status|allow|deny|delete] [regra]";
+    return "Uso: ufw [enable|disable|status|allow|deny] [porta/serviço]";
+  }
+
+  if (base === "ssh-keygen") {
+    if (parts.includes("--help") || parts.includes("-h")) {
+      return "Uso: ssh-keygen [opções]\n  -t tipo    tipo de chave (rsa, ed25519, ecdsa)\n  -b bits    tamanho da chave\n  -f arquivo arquivo de saída\n  -C comentário  comentário na chave";
+    }
+    return "(Gerando par de chaves SSH... simulado)\nChave pública salva em ~/.ssh/id_rsa.pub";
+  }
+
+  if (base === "scp") {
+    if (parts.includes("--help") || parts.includes("-h")) {
+      return "Uso: scp [opções] origem destino\n  -r   copiar recursivamente\n  -P   porta do servidor SSH\n  -i   arquivo de chave privada";
+    }
+    return "(transferência SCP simulada)";
+  }
+
+  if (base === "rsync") {
+    if (parts.includes("--version")) return "rsync  versão 3.2.7  protocolo versão 31 (simulado)";
+    if (parts.includes("--help") || parts.includes("-h")) {
+      return "Uso: rsync [opções] origem destino\n  -a   modo arquivo (recursivo + preservar atributos)\n  -v   verbose\n  -z   comprimir durante transferência\n  --delete  remover arquivos extras no destino";
+    }
+    return "(sincronização rsync simulada)";
+  }
+
+  // ── Pacman, AUR & Arch (Vale do Arch Linux) ──
+
+  if (base === "pacman") {
+    const flag = parts[1] || "";
+    if (flag === "--version") return "Pacman v6.0.2 - libalpm v13.0.2 (simulado)";
+    if (flag === "--help" || flag === "-h") return "Uso: pacman <operação> [opções] [alvos]\n  -S   sincronizar/instalar\n  -R   remover\n  -Q   consultar\n  -U   atualizar de arquivo";
+    if (flag === "-Q") return ["bash 5.2.015-1", "coreutils 9.4-1", "grep 3.11-1", "curl 8.5.0-1", "git 2.43.0-1", "vim 9.0.2189-1"].join("\n");
+    if (flag === "-Ss") return `${parts[2] || "pacote"}/extra 1.0-1\n    Pacote encontrado nos repositórios Arch (simulado)`;
+    if (flag === "-Qi") {
+      const pkg = parts[2] || "bash";
+      return `Nome            : ${pkg}\nVersão          : 5.2.015-1\nDescrição       : ${pkg} — pacote Arch Linux (simulado)\nArquitetura     : x86_64\nURL             : https://archlinux.org`;
+    }
+    if (flag === "-Ql") return `/usr/bin/${parts[2] || "bash"}\n/usr/share/man/man1/${parts[2] || "bash"}.1.gz (simulado)`;
+    if (flag === "-Qdt") return "(Nenhum pacote órfão encontrado — simulado)";
+    if (flag === "-Syu") return ":: Sincronizando bancos de dados de pacotes...\n:: Nenhuma atualização disponível. (simulado)";
+    if (flag === "-S") return `Instalando ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    if (flag === "-R") return `Removendo ${parts[2] || "<pacote>"}... Pronto (simulado)`;
+    return "Uso: pacman [-Q|-S|-R|-Ss|-Qi|-Ql|-Qdt|-Syu] [pacote]";
+  }
+
+  if (base === "reflector") {
+    if (parts.includes("--help") || parts.includes("-h")) {
+      return "Uso: reflector [opções]\n  --country País   filtrar por país\n  --latest N       usar N mirrors mais recentes\n  --sort rate      ordenar por velocidade\n  --save arquivo   salvar mirrorlist";
+    }
+    return "(reflector: buscando mirrors... simulado)\nMirrors atualizados com sucesso.";
+  }
+
+  if (base === "yay") {
+    if (parts.includes("--version")) return "yay v12.3.5 - libalpm v13.0.2 (simulado)";
+    if (parts.includes("--help") || parts.includes("-h")) return "Uso: yay [opções] [pacote]\n  -S   instalar do AUR\n  -Ss  buscar no AUR\n  -R   remover\n  -Syu atualizar tudo";
+    if (parts[1] === "-Ss") return `${parts[2] || "pacote"}-git (AUR) r123.abc1234-1\n    Pacote AUR encontrado (simulado)`;
+    if (parts[1] === "-S") return `Instalando ${parts[2] || "<pacote>"} do AUR... Pronto (simulado)`;
+    return "(yay: helper AUR simulado)";
+  }
+
+  if (base === "paru") {
+    if (parts.includes("--version")) return "paru v2.0.3 (simulado)";
+    return "(paru: helper AUR alternativo — simulado)";
+  }
+
   return null; // não é um comando simulado — deixa o VFS tratar
 }
 

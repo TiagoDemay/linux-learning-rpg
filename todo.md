@@ -82,3 +82,15 @@
 
 ## Controle de Acesso
 - [x] Botão de reset visível apenas para usuário com role "admin"
+
+## Desafios dos 8 Territórios Restantes
+- [x] Montanhas de Kernighan — compilação/scripting (gcc, make, bash, sh, which, env, export, alias)
+- [x] Pântano de Systemd — serviços/daemons (systemctl, journalctl, service, cron, at)
+- [x] Reino de Torvalds — git (git init, add, commit, status, log, diff, branch, merge, clone)
+- [x] Cidade Livre de GNU — variáveis de ambiente (env, export, unset, source, .bashrc, PATH)
+- [x] Planícies de RedHat — rpm/yum/dnf (rpm, yum, dnf install/remove/search/update)
+- [x] Deserto de Debian — dpkg avançado (dpkg-query, dpkg-reconfigure, apt-cache, apt-get)
+- [x] Ilhas de Canonical — snap/cloud (snap install/remove/list, ufw, ssh-keygen, scp)
+- [x] Vale do Arch Linux — pacman/AUR (pacman -S/-R/-Ss/-Q, makepkg, yay)
+- [x] Suporte simulado para todos os novos comandos no terminal (60+ comandos)
+- [x] Testes: 93 testes passando
