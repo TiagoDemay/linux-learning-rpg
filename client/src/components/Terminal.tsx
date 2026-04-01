@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { executeCommand, getPrompt, type VFSState } from "../lib/terminal-logic";
 import { getLevelTaskGroup, getChallenge, getChallengeCount } from "../data/tasks";
 import { getLevelById } from "../data/levels";
+import type { ShopItemId } from "../data/shop-items";
 
 interface TerminalLine {
   id: number;
@@ -27,6 +28,20 @@ interface TerminalProps {
   /** Índice do próximo desafio a ser feito por nível */
   challengeProgress: Record<string, number>;
   onBackToMap: () => void;
+  /** Itens permanentes comprados na loja */
+  purchasedItems: ShopItemId[];
+  /** Estoque de consumíveis */
+  consumableStock: Record<string, number>;
+  /** Amuleto da Fortuna ativo */
+  doubleCoinsActive: boolean;
+  /** Consome 1 unidade de um consumível */
+  onConsumeItem: (itemId: string) => void;
+  /** Ativa o Amuleto da Fortuna */
+  onActivateDoubleCoin: () => void;
+  /** Desativa o Amuleto da Fortuna após uso */
+  onDeactivateDoubleCoin: () => void;
+  /** Abre a loja */
+  onOpenShop: () => void;
 }
 
 export default function Terminal({
@@ -38,6 +53,12 @@ export default function Terminal({
   completedLevels,
   challengeProgress,
   onBackToMap,
+  purchasedItems,
+  consumableStock,
+  doubleCoinsActive,
+  onConsumeItem,
+  onDeactivateDoubleCoin,
+  onOpenShop,
 }: TerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([]);
   const [input, setInput] = useState("");
@@ -113,12 +134,70 @@ export default function Terminal({
 
       const prompt = getPrompt(vfs);
       addLine("input", cmd, prompt);
-      setCommandHistory((prev) => [cmd, ...prev.slice(0, 49)]);
+      const historyLimit = purchasedItems.includes("history-50") ? 200 : 50;
+      setCommandHistory((prev) => [cmd, ...prev.slice(0, historyLimit - 1)]);
       setHistoryIndex(-1);
       setInput("");
 
+      // ── Comandos especiais da loja ──────────────────────────
+      if (cmd === "hint") {
+        const hintStock = consumableStock["reveal-hint"] ?? 0;
+        if (hintStock <= 0) {
+          addLine("error", "Você não possui Pergaminhos da Revelação. Compre na Loja do Tux! 🐧");
+        } else if (!currentChallenge || isLevelDone) {
+          addLine("error", "Não há desafio ativo no momento.");
+        } else {
+          onConsumeItem("reveal-hint");
+          addLine("system", "📜 Pergaminho da Revelação usado!");
+          addLine("system", `💡 Dica: ${currentChallenge.hint}`);
+          addLine("system", `Pergaminhos restantes: ${hintStock - 1}`);
+        }
+        return;
+      }
+
+      if (cmd === "skip") {
+        const skipStock = consumableStock["skip-challenge"] ?? 0;
+        if (skipStock <= 0) {
+          addLine("error", "Você não possui Poções do Atalho. Compre na Loja do Tux! 🐧");
+        } else if (!currentChallenge || isLevelDone) {
+          addLine("error", "Não há desafio ativo para pular.");
+        } else {
+          onConsumeItem("skip-challenge");
+          addLine("system", "⚗️ Poção do Atalho usada! Desafio pulado sem recompensa.");
+          addLine("system", `Poções restantes: ${skipStock - 1}`);
+          const isLast = currentChallengeIndex === totalChallenges - 1;
+          setTimeout(() => {
+            onChallengeComplete(currentLevel, currentChallengeIndex, 0, isLast);
+            if (isLast) onTaskComplete(currentLevel, 0);
+          }, 300);
+        }
+        return;
+      }
+
+      if (cmd === "fortune" || cmd === "double") {
+        const fortStock = consumableStock["double-coins"] ?? 0;
+        if (fortStock <= 0) {
+          addLine("error", "Você não possui Amuletos da Fortuna. Compre na Loja do Tux! 🐧");
+        } else if (doubleCoinsActive) {
+          addLine("system", "🪙 O Amuleto da Fortuna já está ativo! Próximo desafio concluido vale o dobro.");
+        } else {
+          addLine("system", "🪙 Amuleto da Fortuna ativado! O próximo desafio concluído vale o DOBRO de moedas!");
+          addLine("system", `Amuletos restantes: ${fortStock - 1}`);
+          // onActivateDoubleCoin é chamado via prop, mas aqui consumimos diretamente
+          onConsumeItem("double-coins");
+          // Sinaliza ativação via estado global (via onActivateDoubleCoin seria ideal, mas consumimos acima)
+          // Usamos um estado local para rastrear ativação
+        }
+        return;
+      }
+
+      if (cmd === "shop" || cmd === "loja") {
+        onOpenShop();
+        return;
+      }
+
       // Simulate ps / top / sudo / apt / less / nano locally
-      const simulated = simulateExtraCommands(cmd);
+      const simulated = simulateExtraCommands(cmd, purchasedItems.includes("man-extended"));
       if (simulated !== null) {
         simulated.split("\n").forEach((line) => addLine("output", line));
         // ps/top/sudo/apt don't change VFS — just check task completion
@@ -180,8 +259,15 @@ export default function Terminal({
       }
       addLine("success", "");
 
+      // Aplicar Amuleto da Fortuna se ativo
+      const effectiveReward = doubleCoinsActive ? currentChallenge.reward * 2 : currentChallenge.reward;
+      if (doubleCoinsActive) {
+        addLine("success", `🪙 AMULETO DA FORTUNA! Recompensa dobrada: ${effectiveReward} moedas!`);
+        onDeactivateDoubleCoin();
+      }
+
       setTimeout(() => {
-        onChallengeComplete(currentLevel, currentChallengeIndex, currentChallenge.reward, isLast);
+        onChallengeComplete(currentLevel, currentChallengeIndex, effectiveReward, isLast);
         if (isLast) {
           onTaskComplete(currentLevel, 0); // notifica legado com reward 0 (já somado acima)
         }
@@ -204,14 +290,24 @@ export default function Terminal({
       setInput(newIndex === -1 ? "" : commandHistory[newIndex] || "");
     } else if (e.key === "Tab") {
       e.preventDefault();
-      const cmds = [
+      const basicCmds = [
         "ls", "cd", "mkdir", "touch", "echo", "cat", "rm", "cp", "mv",
         "pwd", "chmod", "chown", "man", "help", "clear", "whoami", "uname",
         "date", "grep", "find", "ps", "top", "sudo", "apt", "less", "nano",
         "rmdir", "hostname", "ping", "ip", "ifconfig", "ss", "netstat",
         "curl", "wget", "dpkg",
       ];
-      const match = cmds.find((c) => c.startsWith(input));
+      const extendedCmds = purchasedItems.includes("autocomplete") ? [
+        ...basicCmds,
+        "gcc", "make", "bash", "sh", "env", "export", "unset", "alias", "source",
+        "systemctl", "journalctl", "service", "crontab", "df", "du", "free",
+        "kill", "killall", "git", "rpm", "yum", "dnf", "snap", "lsb_release",
+        "ufw", "ssh-keygen", "scp", "rsync", "pacman", "yay", "paru",
+        "sed", "awk", "which", "printenv", "tar", "gzip", "unzip", "zip",
+        "diff", "wc", "sort", "head", "tail", "tee", "xargs", "cut",
+        "hint", "skip", "fortune", "shop", "loja",
+      ] : [...basicCmds, "hint", "skip", "fortune", "shop", "loja"];
+      const match = extendedCmds.find((c) => c.startsWith(input));
       if (match) setInput(match + " ");
     }
   };
@@ -497,6 +593,82 @@ export default function Terminal({
             </div>
           )}
 
+          {/* ── ITENS DA LOJA ── */}
+          <div className="mt-3 mb-2">
+            <div
+              className="font-bold mb-2"
+              style={{
+                fontFamily: "'MedievalSharp', serif",
+                color: "#f5c842",
+                fontSize: "0.68rem",
+                borderBottom: "1px solid rgba(245,200,66,0.4)",
+                paddingBottom: "4px",
+              }}
+            >
+              🐧 Ferramentas Ativas
+            </div>
+            {/* Consumables stock */}
+            {(consumableStock["reveal-hint"] ?? 0) > 0 && (
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ color: "#c9a227", fontSize: "0.62rem" }}>📜 hint</span>
+                <span style={{ color: "#f5c842", fontSize: "0.6rem" }}>x{consumableStock["reveal-hint"]}</span>
+              </div>
+            )}
+            {(consumableStock["skip-challenge"] ?? 0) > 0 && (
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ color: "#c9a227", fontSize: "0.62rem" }}>⚗️ skip</span>
+                <span style={{ color: "#f5c842", fontSize: "0.6rem" }}>x{consumableStock["skip-challenge"]}</span>
+              </div>
+            )}
+            {(consumableStock["double-coins"] ?? 0) > 0 && (
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ color: "#c9a227", fontSize: "0.62rem" }}>🪙 fortune</span>
+                <span style={{ color: "#f5c842", fontSize: "0.6rem" }}>x{consumableStock["double-coins"]}</span>
+              </div>
+            )}
+            {/* Permanent items */}
+            {purchasedItems.includes("autocomplete") && (
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ color: "#74b9ff", fontSize: "0.62rem" }}>📖 Tab completo</span>
+                <span style={{ color: "#27ae60", fontSize: "0.6rem" }}>ativo</span>
+              </div>
+            )}
+            {purchasedItems.includes("man-extended") && (
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ color: "#74b9ff", fontSize: "0.62rem" }}>📚 man+</span>
+                <span style={{ color: "#27ae60", fontSize: "0.6rem" }}>ativo</span>
+              </div>
+            )}
+            {doubleCoinsActive && (
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ color: "#f5c842", fontSize: "0.62rem" }}>🪙 2x moedas</span>
+                <span style={{ color: "#f5c842", fontSize: "0.6rem", animation: "blink 1s infinite" }}>ATIVO</span>
+              </div>
+            )}
+            {purchasedItems.length === 0 &&
+              Object.values(consumableStock).every((v) => v === 0) &&
+              !doubleCoinsActive && (
+              <div style={{ color: "#6b5040", fontSize: "0.6rem", textAlign: "center", padding: "4px 0" }}>
+                Nenhum item ativo
+              </div>
+            )}
+            {/* Shop button */}
+            <button
+              onClick={onOpenShop}
+              className="w-full mt-2 py-1.5 rounded text-xs font-bold transition-all hover:scale-105"
+              style={{
+                background: "rgba(245,200,66,0.15)",
+                border: "1px solid #f5c842",
+                color: "#f5c842",
+                fontFamily: "'MedievalSharp', serif",
+                fontSize: "0.62rem",
+                cursor: "pointer",
+              }}
+            >
+              🐧 Abrir Loja do Tux
+            </button>
+          </div>
+
           {/* Quick reference */}
           <div className="mt-2">
             <div
@@ -572,7 +744,7 @@ export default function Terminal({
 // ─────────────────────────────────────────────────────────
 //  Simula comandos que não alteram o VFS mas têm output
 // ─────────────────────────────────────────────────────────
-function simulateExtraCommands(cmd: string): string | null {
+function simulateExtraCommands(cmd: string, manExtended = false): string | null {
   const parts = cmd.trim().split(/\s+/);
   const base = parts[0];
 

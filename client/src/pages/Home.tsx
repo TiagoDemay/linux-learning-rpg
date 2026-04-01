@@ -6,9 +6,11 @@ import Terminal from "../components/Terminal";
 import HUD from "../components/HUD";
 import UnlockModal from "../components/UnlockModal";
 import SparkleEffect from "../components/SparkleEffect";
+import ShopModal from "../components/ShopModal";
 import { trpc } from "../lib/trpc";
 import { useAuth } from "../_core/hooks/useAuth";
 import { getLoginUrl } from "../const";
+import { type ShopItemId, type ShopItem } from "../data/shop-items";
 
 type View = "map" | "terminal" | "ranking";
 
@@ -18,6 +20,12 @@ interface GameState {
   completedLevels: string[];
   currentLevel: string;
   challengeProgress: Record<string, number>;
+  /** Itens permanentes comprados */
+  purchasedItems: ShopItemId[];
+  /** Quantidade de consumíveis em estoque */
+  consumableStock: Record<string, number>;
+  /** Amuleto da Fortuna ativo (dobra moedas no próximo desafio) */
+  doubleCoinsActive: boolean;
 }
 
 const STORAGE_KEY = "terras-do-kernel-save";
@@ -27,7 +35,13 @@ function loadGameState(): GameState {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { challengeProgress: {}, ...parsed };
+      return {
+        challengeProgress: {},
+        purchasedItems: [],
+        consumableStock: {},
+        doubleCoinsActive: false,
+        ...parsed,
+      };
     }
   } catch {}
   return {
@@ -36,6 +50,9 @@ function loadGameState(): GameState {
     completedLevels: [],
     currentLevel: "floresta-stallman",
     challengeProgress: {},
+    purchasedItems: [],
+    consumableStock: {},
+    doubleCoinsActive: false,
   };
 }
 
@@ -53,6 +70,7 @@ export default function Home() {
   const [sparkleActive, setSparkleActive] = useState(false);
   const [sparkleMessage, setSparkleMessage] = useState("");
   const [coinAnimation, setCoinAnimation] = useState<number | null>(null);
+  const [shopOpen, setShopOpen] = useState(false);
 
   const { user, isAuthenticated } = useAuth();
 
@@ -80,6 +98,9 @@ export default function Home() {
           completedLevels: serverProgress.completedLevels,
           currentLevel: serverProgress.currentLevel,
           challengeProgress: serverProgress.challengeProgress,
+          purchasedItems: local.purchasedItems,
+          consumableStock: local.consumableStock,
+          doubleCoinsActive: local.doubleCoinsActive,
         };
         saveGameState(merged);
         return merged;
@@ -172,6 +193,25 @@ export default function Home() {
   const handleViewChange = useCallback((newView: View) => { setView(newView); }, []);
   const handleBackToMap = useCallback(() => { setView("map"); }, []);
 
+  const handleBuyItem = useCallback((item: ShopItem) => {
+    setGameState((prev) => {
+      if (prev.coins < item.price) return prev;
+      const newCoins = prev.coins - item.price;
+      if (item.type === "permanent") {
+        if (prev.purchasedItems.includes(item.id as ShopItemId)) return prev;
+        return { ...prev, coins: newCoins, purchasedItems: [...prev.purchasedItems, item.id as ShopItemId] };
+      }
+      // consumable
+      const currentStock = prev.consumableStock[item.id] ?? 0;
+      if (item.maxStack && currentStock >= item.maxStack) return prev;
+      return {
+        ...prev,
+        coins: newCoins,
+        consumableStock: { ...prev.consumableStock, [item.id]: currentStock + 1 },
+      };
+    });
+  }, []);
+
 
   const handleResetGame = useCallback(() => {
     const fresh: GameState = {
@@ -180,6 +220,9 @@ export default function Home() {
       completedLevels: [],
       currentLevel: "floresta-stallman",
       challengeProgress: {},
+      purchasedItems: [],
+      consumableStock: {},
+      doubleCoinsActive: false,
     };
     setGameState(fresh);
     setVfs(createInitialVFS());
@@ -215,6 +258,7 @@ export default function Home() {
                 coins={gameState.coins}
                 onSelectLevel={handleSelectLevel}
                 onUnlockLevel={handleUnlockLevel}
+                onOpenShop={() => setShopOpen(true)}
               />
             </div>
           </div>
@@ -230,6 +274,27 @@ export default function Home() {
               completedLevels={gameState.completedLevels}
               challengeProgress={gameState.challengeProgress}
               onBackToMap={handleBackToMap}
+              purchasedItems={gameState.purchasedItems}
+              consumableStock={gameState.consumableStock}
+              doubleCoinsActive={gameState.doubleCoinsActive}
+              onConsumeItem={(itemId) => {
+                setGameState((prev) => {
+                  const stock = prev.consumableStock[itemId] ?? 0;
+                  if (stock <= 0) return prev;
+                  return { ...prev, consumableStock: { ...prev.consumableStock, [itemId]: stock - 1 } };
+                });
+              }}
+              onActivateDoubleCoin={() => {
+                setGameState((prev) => ({
+                  ...prev,
+                  doubleCoinsActive: true,
+                  consumableStock: { ...prev.consumableStock, "double-coins": Math.max(0, (prev.consumableStock["double-coins"] ?? 0) - 1) },
+                }));
+              }}
+              onDeactivateDoubleCoin={() => {
+                setGameState((prev) => ({ ...prev, doubleCoinsActive: false }));
+              }}
+              onOpenShop={() => setShopOpen(true)}
             />
           </div>
         )}
@@ -245,6 +310,14 @@ export default function Home() {
 
       <UnlockModal level={pendingUnlock} coins={gameState.coins} onConfirm={confirmUnlock} onCancel={() => setPendingUnlock(null)} />
       <SparkleEffect active={sparkleActive} message={sparkleMessage} onDone={() => setSparkleActive(false)} />
+      <ShopModal
+        open={shopOpen}
+        coins={gameState.coins}
+        purchasedItems={gameState.purchasedItems}
+        consumableStock={gameState.consumableStock}
+        onBuy={handleBuyItem}
+        onClose={() => setShopOpen(false)}
+      />
 
       {coinAnimation !== null && (
         <div className="fixed top-16 right-8 z-40 pointer-events-none font-bold text-yellow-400 text-xl" style={{ animation: "float-up 1.2s ease-out forwards" }}>

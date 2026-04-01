@@ -9,6 +9,7 @@ interface RPGMapProps {
   coins: number;
   onSelectLevel: (level: Level) => void;
   onUnlockLevel: (level: Level) => void;
+  onOpenShop: () => void;
 }
 
 // SVG path connections between levels
@@ -39,6 +40,7 @@ export default function RPGMap({
   coins,
   onSelectLevel,
   onUnlockLevel,
+  onOpenShop,
 }: RPGMapProps) {
   const [hoveredLevel, setHoveredLevel] = useState<string | null>(null);
   const [sparkles, setSparkles] = useState<{ id: number; x: number; y: number }[]>([]);
@@ -295,6 +297,104 @@ export default function RPGMap({
           );
         })}
 
+        {/* ── LOJA DO TUX ── */}
+        {(() => {
+          const shopX = 44;
+          const shopY = 60;
+          const [shopHovered, setShopHovered] = [hoveredLevel === "__shop__", (v: boolean) => setHoveredLevel(v ? "__shop__" : null)] as const;
+          return (
+            <div
+              className="absolute cursor-pointer select-none transition-all duration-200"
+              style={{
+                left: `${shopX}%`,
+                top: `${shopY}%`,
+                transform: `translate(-50%, -50%) scale(${shopHovered ? 1.2 : 1})`,
+                zIndex: shopHovered ? 20 : 10,
+              }}
+              onMouseEnter={() => setHoveredLevel("__shop__")}
+              onMouseLeave={() => setHoveredLevel(null)}
+              onClick={onOpenShop}
+            >
+              {/* Animated glow ring */}
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  animation: "shop-pulse 2s ease-in-out infinite",
+                  border: "2px solid #f5c842",
+                  borderRadius: "50%",
+                  width: "56px",
+                  height: "56px",
+                }}
+              />
+              {/* Shop node */}
+              <div
+                style={{
+                  border: "3px solid #f5c842",
+                  borderRadius: "50%",
+                  width: "52px",
+                  height: "52px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(245,200,66,0.2)",
+                  boxShadow: "0 0 16px rgba(245,200,66,0.5), inset 0 0 8px rgba(245,200,66,0.1)",
+                  position: "relative",
+                }}
+              >
+                <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>🐧</span>
+              </div>
+              {/* Label */}
+              <div
+                className="absolute whitespace-nowrap text-center font-bold"
+                style={{
+                  top: "100%",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  marginTop: "4px",
+                  fontFamily: "'MedievalSharp', serif",
+                  fontSize: "0.55rem",
+                  textShadow: "1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9)",
+                  maxWidth: "80px",
+                  lineHeight: 1.2,
+                  background: "rgba(30,15,5,0.85)",
+                  padding: "2px 5px",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(245,200,66,0.8)",
+                  color: "#f5c842",
+                }}
+              >
+                Loja do Tux
+              </div>
+              {/* Tooltip */}
+              {shopHovered && (
+                <div
+                  className="absolute z-30 rounded-lg p-3 shadow-xl"
+                  style={{
+                    bottom: "calc(100% + 12px)",
+                    top: "auto",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "190px",
+                    background: "rgba(62,39,20,0.97)",
+                    border: "2px solid #f5c842",
+                    color: "#f0deb4",
+                    fontSize: "0.7rem",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <div className="font-bold mb-1" style={{ fontFamily: "'MedievalSharp', serif", fontSize: "0.75rem", color: "#f5c842" }}>
+                    🐧 Loja do Tux
+                  </div>
+                  <div className="mb-2 opacity-90">Adquira ferramentas, dicas e poderes para sua jornada pelo reino Linux.</div>
+                  <div style={{ color: "#f5c842", fontSize: "0.65rem" }}>
+                    👀 Clique para abrir a loja
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* ── SPARKLE EFFECTS ── */}
         {sparkles.map((s) => (
           <div
@@ -330,6 +430,10 @@ export default function RPGMap({
           0% { transform: scale(0) rotate(0deg); opacity: 1; }
           50% { transform: scale(1.5) rotate(180deg) translate(20px, -20px); opacity: 1; }
           100% { transform: scale(0) rotate(360deg) translate(40px, -40px); opacity: 0; }
+        }
+        @keyframes shop-pulse {
+          0%, 100% { transform: translate(-2px, -2px) scale(1); opacity: 0.7; }
+          50% { transform: translate(-2px, -2px) scale(1.25); opacity: 0.2; }
         }
       `}</style>
     </div>

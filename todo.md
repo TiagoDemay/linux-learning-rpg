@@ -115,3 +115,15 @@
 ## Ajustes de UX
 - [x] Tooltip dos marcadores: posicionamento dinâmico (abaixo quando y < 40%, acima caso contrário)
 - [x] Remover botão "Reiniciar Desafio" e bloco de dica explícita do painel lateral do terminal
+
+## Loja do Tux
+- [x] Criar arquivo shop-items.ts com definição dos itens da loja
+- [x] Adicionar shopItems ao GameState e persistência localStorage
+- [x] Criar componente ShopModal.tsx com UI medieval
+- [x] Integrar autocomplete expandido no terminal (item comprado)
+- [x] Integrar "revelar dica" no terminal (item comprado)
+- [x] Integrar "man page detalhada" no terminal (item comprado)
+- [x] Integrar "histórico de comandos expandido" no terminal (item comprado)
+- [x] Adicionar marcador da loja no RPGMap (abaixo do pinguim, ~x:44, y:60)
+- [x] Conectar marcador ao ShopModal no Home.tsx
+- [x] Testes dos itens da loja
