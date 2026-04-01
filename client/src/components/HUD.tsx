@@ -14,6 +14,7 @@ interface HUDProps {
   onResetGame: () => void | Promise<void>;
   user: User | null | undefined;
   isAuthenticated: boolean;
+  activeTournament?: string;
 }
 
 export default function HUD({
@@ -25,6 +26,7 @@ export default function HUD({
   onResetGame,
   user,
   isAuthenticated,
+  activeTournament,
 }: HUDProps) {
   const totalLevels = LEVELS.length;
   const progress = (completedLevels.length / totalLevels) * 100;
@@ -40,7 +42,7 @@ export default function HUD({
         minHeight: "56px",
       }}
     >
-      {/* Left: Title + current level */}
+      {/* Left: Title + current level + torneio ativo */}
       <div className="flex items-center gap-3">
         <div
           style={{
@@ -53,6 +55,21 @@ export default function HUD({
         >
           ⚔ Terras do Kernel
         </div>
+        {activeTournament && (
+          <div
+            className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded"
+            style={{
+              background: "rgba(39,174,96,0.15)",
+              border: "1px solid rgba(39,174,96,0.4)",
+              color: "#2ecc71",
+              fontSize: "0.65rem",
+              whiteSpace: "nowrap",
+            }}
+            title="Torneio em andamento"
+          >
+            🏆 {activeTournament}
+          </div>
+        )}
         {currentLevelData && (
           <div
             className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded"

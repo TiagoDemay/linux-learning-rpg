@@ -92,7 +92,7 @@ export default function ProfessorPanel() {
     { enabled: !!user && user.role === "admin" }
   );
 
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"students" | "history">("students");
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
 
   function handleSort(key: SortKey) {
@@ -218,6 +218,31 @@ export default function ProfessorPanel() {
       </header>
 
       <div className="flex-1 p-6 space-y-6 max-w-[1400px] mx-auto w-full">
+        {/* ── Abas ── */}
+        <div className="flex gap-2 border-b border-amber-900/40 pb-0">
+          <button
+            onClick={() => setActiveTab("students")}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-all ${
+              activeTab === "students"
+                ? "bg-[#2c1a00] border border-b-0 border-amber-700/60 text-amber-300"
+                : "text-amber-600 hover:text-amber-400"
+            }`}
+          >
+            👥 Alunos {students ? `(${students.length})` : ""}
+          </button>
+          <button
+            onClick={() => { setActiveTab("history"); refetchHistory(); }}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-all ${
+              activeTab === "history"
+                ? "bg-[#2c1a00] border border-b-0 border-amber-700/60 text-amber-300"
+                : "text-amber-600 hover:text-amber-400"
+            }`}
+          >
+            🏆 Histórico de Torneios {tournaments && tournaments.length > 0 ? `(${tournaments.length})` : ""}
+          </button>
+        </div>
+
+        {activeTab === "students" ? (<>
         {/* ── Stats cards ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -465,26 +490,9 @@ export default function ProfessorPanel() {
             </div>
           </div>
         )}
-        {/* ── Histórico de Torneios ── */}
-        <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">
-          <button
-            onClick={() => { setHistoryOpen((v) => !v); if (!historyOpen) refetchHistory(); }}
-            className="w-full flex items-center justify-between px-6 py-4 hover:bg-amber-900/10 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🏆</span>
-              <h2 className="font-medieval text-lg text-amber-400">Histórico de Torneios</h2>
-              {tournaments && tournaments.length > 0 && (
-                <span className="bg-amber-800/50 text-amber-300 text-xs px-2 py-0.5 rounded-full">
-                  {tournaments.length} torneio{tournaments.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <span className="text-amber-600 text-lg">{historyOpen ? "▲" : "▼"}</span>
-          </button>
-
-          {historyOpen && (
-            <div className="border-t border-amber-900/30 p-6">
+        </>) : (
+          <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">
+            <div className="p-6">
               {!tournaments || tournaments.length === 0 ? (
                 <p className="text-amber-500/60 text-sm text-center py-6">
                   Nenhum torneio registrado ainda. O histórico é criado automaticamente ao reiniciar o jogo.
@@ -566,8 +574,8 @@ export default function ProfessorPanel() {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -136,3 +136,9 @@
 - [x] HUD: botão reiniciar chama resetGame no servidor
 - [x] ProfessorPanel: aba/seção de histórico de torneios
 - [x] Testes das novas procedures
+
+## Correções pós-reset
+- [x] Ranking: filtrar jogadores com 0 moedas e 0 territórios (sem progresso real)
+- [x] ProfessorPanel: corrigir visibilidade da seção "Histórico de Torneios"
+- [x] HUD: indicador de torneio ativo (nome do torneio atual)
+- [x] Criar tabela active_tournament para guardar o nome do torneio em curso

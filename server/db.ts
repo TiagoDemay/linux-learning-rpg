@@ -1,6 +1,6 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, gt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, userProgress, InsertUserProgress, tournamentHistory } from "../drizzle/schema";
+import { InsertUser, users, userProgress, InsertUserProgress, tournamentHistory, activeTournament } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -204,11 +204,34 @@ export async function getTournamentHistory() {
   return Array.from(map.values());
 }
 
+/** Retorna o torneio ativo atual */
+export async function getActiveTournament() {
+  const db = await getDb();
+  if (!db) return { name: "Torneio Atual", startedAt: new Date() };
+  const rows = await db.select().from(activeTournament).limit(1);
+  if (rows.length === 0) return { name: "Torneio Atual", startedAt: new Date() };
+  return rows[0];
+}
+
+/** Define o nome do torneio ativo (upsert na linha id=1) */
+export async function setActiveTournament(name: string) {
+  const db = await getDb();
+  if (!db) return;
+  // Tenta atualizar; se não existir, insere
+  const existing = await db.select().from(activeTournament).limit(1);
+  if (existing.length > 0) {
+    await db.update(activeTournament).set({ name, startedAt: new Date() });
+  } else {
+    await db.insert(activeTournament).values({ id: 1, name, startedAt: new Date() });
+  }
+}
+
 /** Retorna o top N jogadores ordenados por moedas (para o ranking) */
 export async function getTopPlayers(limit = 20) {
   const db = await getDb();
   if (!db) return [];
 
+  // Filtrar jogadores sem progresso real (0 moedas e sem territórios completados)
   const rows = await db
     .select({
       userId: userProgress.userId,
@@ -221,6 +244,7 @@ export async function getTopPlayers(limit = 20) {
     })
     .from(userProgress)
     .innerJoin(users, eq(userProgress.userId, users.id))
+    .where(gt(userProgress.coins, 0))
     .orderBy(desc(userProgress.coins))
     .limit(limit);
 

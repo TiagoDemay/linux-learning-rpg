@@ -49,6 +49,16 @@ export const tournamentHistory = mysqlTable("tournament_history", {
   position: int("position").default(0).notNull(),
 });
 
+/**
+ * Torneio ativo atual. Sempre há no máximo 1 linha (id=1).
+ * É atualizado ao reiniciar o jogo.
+ */
+export const activeTournament = mysqlTable("active_tournament", {
+  id: int("id").primaryKey().default(1),
+  name: varchar("name", { length: 128 }).notNull().default("Torneio Atual"),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserProgress = typeof userProgress.$inferSelect;

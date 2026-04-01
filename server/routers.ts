@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, resetAllProgress, getTournamentHistory } from "./db";
+import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -99,8 +99,16 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
         }
         const tournamentId = await resetAllProgress(input.tournamentName);
+        // Atualiza o torneio ativo com o novo nome
+        await setActiveTournament(input.tournamentName);
         return { success: true, tournamentId };
       }),
+
+    /** Retorna o torneio ativo atual — público */
+    getActiveTournament: publicProcedure.query(async () => {
+      const t = await getActiveTournament();
+      return { name: t.name, startedAt: t.startedAt };
+    }),
 
     /** Retorna o histórico de torneios anteriores — exclusivo para admin */
     getTournamentHistory: protectedProcedure.query(async ({ ctx }) => {

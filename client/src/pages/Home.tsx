@@ -80,6 +80,12 @@ export default function Home() {
     staleTime: 30_000,
   });
 
+  // tRPC: torneio ativo
+  const { data: activeTournamentData } = trpc.professor.getActiveTournament.useQuery(undefined, {
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+
   // tRPC: salvar progresso
   const saveProgressMutation = trpc.progress.save.useMutation();
 
@@ -264,6 +270,7 @@ export default function Home() {
         onResetGame={handleResetGame}
         user={user}
         isAuthenticated={isAuthenticated}
+        activeTournament={activeTournamentData?.name}
       />
 
       <div className="flex-1 overflow-hidden relative">
