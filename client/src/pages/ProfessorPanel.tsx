@@ -92,8 +92,32 @@ export default function ProfessorPanel() {
     { enabled: !!user && user.role === "admin" }
   );
 
-  const [activeTab, setActiveTab] = useState<"students" | "history">("students");
+  const [activeTab, setActiveTab] = useState<"students" | "history" | "tournament">("students");
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+
+  // Torneio ativo
+  const { data: activeTournamentData, refetch: refetchActiveTournament } = trpc.professor.getActiveTournament.useQuery(
+    undefined,
+    { enabled: !!user && user.role === "admin" }
+  );
+  const { data: participants, refetch: refetchParticipants } = trpc.professor.getParticipants.useQuery(
+    undefined,
+    { enabled: !!user && user.role === "admin" }
+  );
+  const createTournamentMutation = trpc.professor.createTournament.useMutation({
+    onSuccess: () => { refetchActiveTournament(); refetchParticipants(); refetch(); }
+  });
+  const renameTournamentMutation = trpc.professor.renameTournament.useMutation({
+    onSuccess: () => { refetchActiveTournament(); }
+  });
+  const toggleParticipantMutation = trpc.professor.toggleParticipant.useMutation({
+    onSuccess: () => { refetchParticipants(); refetch(); }
+  });
+
+  const [newTournamentName, setNewTournamentName] = useState("");
+  const [renameValue, setRenameValue] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [participantSearch, setParticipantSearch] = useState("");
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -219,7 +243,17 @@ export default function ProfessorPanel() {
 
       <div className="flex-1 p-6 space-y-6 max-w-[1400px] mx-auto w-full">
         {/* ── Abas ── */}
-        <div className="flex gap-2 border-b border-amber-900/40 pb-0">
+        <div className="flex gap-2 border-b border-amber-900/40 pb-0 flex-wrap">
+          <button
+            onClick={() => setActiveTab("tournament")}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-all ${
+              activeTab === "tournament"
+                ? "bg-[#2c1a00] border border-b-0 border-amber-700/60 text-amber-300"
+                : "text-amber-600 hover:text-amber-400"
+            }`}
+          >
+            ⚔️ Torneio Ativo
+          </button>
           <button
             onClick={() => setActiveTab("students")}
             className={`px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-all ${
@@ -238,11 +272,152 @@ export default function ProfessorPanel() {
                 : "text-amber-600 hover:text-amber-400"
             }`}
           >
-            🏆 Histórico de Torneios {tournaments && tournaments.length > 0 ? `(${tournaments.length})` : ""}
+            🏆 Histórico {tournaments && tournaments.length > 0 ? `(${tournaments.length})` : ""}
           </button>
         </div>
 
-        {activeTab === "students" ? (<>
+        {activeTab === "tournament" && (
+          <div className="space-y-6">
+            {/* ── Torneio Ativo: cabeçalho ── */}
+            <div className="bg-[#2c1a00] border border-amber-700/50 rounded-xl p-6">
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="font-medieval text-xl text-amber-300 mb-1">
+                    {activeTournamentData?.name ?? "Sem torneio ativo"}
+                  </h2>
+                  <p className="text-amber-500/60 text-sm">
+                    {activeTournamentData?.startedAt
+                      ? `Iniciado em ${formatDate(activeTournamentData.startedAt)}`
+                      : "Nenhum torneio criado ainda"}
+                  </p>
+                </div>
+                {/* Renomear */}
+                {!isRenaming ? (
+                  <button
+                    onClick={() => { setRenameValue(activeTournamentData?.name ?? ""); setIsRenaming(true); }}
+                    className="px-4 py-2 bg-amber-800/40 hover:bg-amber-700/40 border border-amber-700/50 rounded-lg text-amber-300 text-sm transition-colors"
+                  >
+                    ✏️ Renomear
+                  </button>
+                ) : (
+                  <div className="flex gap-2 items-center">
+                    <input
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      className="bg-[#1a0f00] border border-amber-700/50 rounded-lg px-3 py-1.5 text-amber-100 text-sm focus:outline-none focus:border-amber-500"
+                      placeholder="Novo nome..."
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && renameValue.trim()) {
+                          renameTournamentMutation.mutate({ name: renameValue.trim() });
+                          setIsRenaming(false);
+                        }
+                        if (e.key === "Escape") setIsRenaming(false);
+                      }}
+                    />
+                    <button
+                      onClick={() => { if (renameValue.trim()) { renameTournamentMutation.mutate({ name: renameValue.trim() }); setIsRenaming(false); } }}
+                      disabled={!renameValue.trim() || renameTournamentMutation.isPending}
+                      className="px-3 py-1.5 bg-green-800/60 hover:bg-green-700/60 border border-green-700/50 rounded-lg text-green-300 text-sm disabled:opacity-40"
+                    >
+                      Salvar
+                    </button>
+                    <button onClick={() => setIsRenaming(false)} className="px-3 py-1.5 text-amber-500 text-sm hover:text-amber-300">✕</button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Criar novo torneio ── */}
+            <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl p-6">
+              <h3 className="font-medieval text-amber-400 mb-4">🎮 Criar Novo Torneio</h3>
+              <p className="text-amber-500/60 text-xs mb-4">Criar um novo torneio encerra o atual e limpa a lista de participantes. O progresso dos jogadores é preservado até você clicar em Reiniciar.</p>
+              <div className="flex gap-3">
+                <input
+                  value={newTournamentName}
+                  onChange={(e) => setNewTournamentName(e.target.value)}
+                  placeholder="Nome do novo torneio (ex: Turma A - Maio 2026)"
+                  className="flex-1 bg-[#1a0f00] border border-amber-700/50 rounded-lg px-4 py-2 text-amber-100 placeholder-amber-700 text-sm focus:outline-none focus:border-amber-500"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newTournamentName.trim()) {
+                      createTournamentMutation.mutate({ name: newTournamentName.trim() });
+                      setNewTournamentName("");
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => { if (newTournamentName.trim()) { createTournamentMutation.mutate({ name: newTournamentName.trim() }); setNewTournamentName(""); } }}
+                  disabled={!newTournamentName.trim() || createTournamentMutation.isPending}
+                  className="px-5 py-2 bg-green-800/60 hover:bg-green-700/60 border border-green-700/50 rounded-lg text-green-300 text-sm font-semibold disabled:opacity-40 transition-colors"
+                >
+                  {createTournamentMutation.isPending ? "Criando..." : "+ Criar"}
+                </button>
+              </div>
+            </div>
+
+            {/* ── Participantes ── */}
+            <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medieval text-amber-400">👥 Participantes do Torneio</h3>
+                <span className="text-amber-500/60 text-xs">
+                  {participants?.filter(p => p.isParticipant).length ?? 0} de {participants?.length ?? 0} ativados
+                </span>
+              </div>
+              {!activeTournamentData?.tournamentId ? (
+                <p className="text-amber-500/60 text-sm text-center py-4">Crie um torneio primeiro para gerenciar participantes.</p>
+              ) : (
+                <>
+                  <div className="relative mb-4">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500">🔍</span>
+                    <input
+                      type="text"
+                      placeholder="Buscar jogador..."
+                      value={participantSearch}
+                      onChange={(e) => setParticipantSearch(e.target.value)}
+                      className="w-full bg-[#1a0f00] border border-amber-800/50 rounded-lg pl-9 pr-4 py-2 text-amber-100 placeholder-amber-700 text-sm focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                    {(participants ?? [])
+                      .filter(p => !participantSearch || (p.name ?? "").toLowerCase().includes(participantSearch.toLowerCase()) || (p.email ?? "").toLowerCase().includes(participantSearch.toLowerCase()))
+                      .map((p) => (
+                        <div
+                          key={p.id}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
+                            p.isParticipant
+                              ? "bg-green-900/20 border-green-700/40"
+                              : "bg-amber-900/10 border-amber-900/30"
+                          }`}
+                        >
+                          <Avatar name={p.name ?? "?"} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-amber-100 text-sm font-semibold truncate">{p.name ?? "Sem nome"}</span>
+                              {p.role === "admin" && <span className="text-xs bg-amber-800/50 text-amber-300 px-1.5 py-0.5 rounded">Professor</span>}
+                            </div>
+                            <span className="text-amber-500/60 text-xs truncate">{p.email ?? ""}</span>
+                          </div>
+                          <button
+                            onClick={() => toggleParticipantMutation.mutate({ userId: p.id, add: !p.isParticipant })}
+                            disabled={toggleParticipantMutation.isPending}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              p.isParticipant
+                                ? "bg-red-900/40 hover:bg-red-800/40 border-red-700/50 text-red-300"
+                                : "bg-green-900/40 hover:bg-green-800/40 border-green-700/50 text-green-300"
+                            }`}
+                          >
+                            {p.isParticipant ? "Remover" : "Adicionar"}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "students" && (<>
         {/* ── Stats cards ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -490,7 +665,9 @@ export default function ProfessorPanel() {
             </div>
           </div>
         )}
-        </>) : (
+        </>) }
+
+        {activeTab === "history" && (
           <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">
             <div className="p-6">
               {!tournaments || tournaments.length === 0 ? (

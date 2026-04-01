@@ -50,12 +50,36 @@ export const tournamentHistory = mysqlTable("tournament_history", {
 });
 
 /**
+ * Torneio gerenciado pelo professor.
+ * status: 'active' = torneio em andamento, 'finished' = encerrado
+ */
+export const tournaments = mysqlTable("tournaments", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  status: mysqlEnum("status", ["active", "finished"]).default("active").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/**
+ * Participantes de um torneio.
+ * Um jogador só aparece no ranking/painel se estiver nesta tabela para o torneio ativo.
+ */
+export const tournamentParticipants = mysqlTable("tournament_participants", {
+  id: int("id").autoincrement().primaryKey(),
+  tournamentId: int("tournamentId").notNull(),
+  userId: int("userId").notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+});
+
+/**
  * Torneio ativo atual. Sempre há no máximo 1 linha (id=1).
- * É atualizado ao reiniciar o jogo.
+ * É atualizado ao criar/reiniciar o torneio.
  */
 export const activeTournament = mysqlTable("active_tournament", {
   id: int("id").primaryKey().default(1),
   name: varchar("name", { length: 128 }).notNull().default("Torneio Atual"),
+  tournamentId: int("tournamentId"),
   startedAt: timestamp("startedAt").defaultNow().notNull(),
 });
 

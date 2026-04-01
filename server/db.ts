@@ -1,6 +1,6 @@
-import { desc, eq, gt, sql } from "drizzle-orm";
+import { desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, userProgress, InsertUserProgress, tournamentHistory, activeTournament } from "../drizzle/schema";
+import { InsertUser, users, userProgress, InsertUserProgress, tournamentHistory, activeTournament, tournaments, tournamentParticipants } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -213,26 +213,165 @@ export async function getActiveTournament() {
   return rows[0];
 }
 
-/** Define o nome do torneio ativo (upsert na linha id=1) */
-export async function setActiveTournament(name: string) {
+/** Define o nome e o tournamentId do torneio ativo (upsert na linha id=1) */
+export async function setActiveTournament(name: string, tournamentId?: number) {
   const db = await getDb();
   if (!db) return;
-  // Tenta atualizar; se não existir, insere
   const existing = await db.select().from(activeTournament).limit(1);
+  const payload: Record<string, unknown> = { name, startedAt: new Date() };
+  if (tournamentId !== undefined) payload.tournamentId = tournamentId;
   if (existing.length > 0) {
-    await db.update(activeTournament).set({ name, startedAt: new Date() });
+    await db.update(activeTournament).set(payload);
   } else {
-    await db.insert(activeTournament).values({ id: 1, name, startedAt: new Date() });
+    await db.insert(activeTournament).values({ id: 1, name, tournamentId: tournamentId ?? null, startedAt: new Date() });
   }
 }
 
-/** Retorna o top N jogadores ordenados por moedas (para o ranking) */
+/** Cria um novo torneio e o define como ativo. Retorna o torneio criado. */
+export async function createTournament(name: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Encerrar torneio ativo anterior
+  await db.update(tournaments).set({ status: "finished" }).where(eq(tournaments.status, "active"));
+  // Criar novo torneio
+  const [result] = await db.insert(tournaments).values({ name, status: "active" });
+  const tournamentId = result.insertId as number;
+  // Atualizar active_tournament
+  await setActiveTournament(name, tournamentId);
+  return { id: tournamentId, name };
+}
+
+/** Renomeia o torneio ativo */
+export async function renameTournament(newName: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const active = await db.select().from(activeTournament).limit(1);
+  if (active.length === 0) throw new Error("Nenhum torneio ativo");
+  const tournamentId = active[0].tournamentId;
+  if (tournamentId) {
+    await db.update(tournaments).set({ name: newName }).where(eq(tournaments.id, tournamentId));
+  }
+  await db.update(activeTournament).set({ name: newName });
+}
+
+/** Retorna todos os usuários cadastrados com flag de participação no torneio ativo */
+export async function getAllUsersWithParticipation() {
+  const db = await getDb();
+  if (!db) return [];
+  const active = await db.select().from(activeTournament).limit(1);
+  const tournamentId = active[0]?.tournamentId ?? null;
+  // Buscar todos os usuários
+  const allUsers = await db.select({ id: users.id, name: users.name, email: users.email, role: users.role, lastSignedIn: users.lastSignedIn }).from(users);
+  if (!tournamentId) {
+    return allUsers.map(u => ({ ...u, isParticipant: false }));
+  }
+  // Buscar participantes do torneio ativo
+  const participants = await db.select({ userId: tournamentParticipants.userId })
+    .from(tournamentParticipants)
+    .where(eq(tournamentParticipants.tournamentId, tournamentId));
+  const participantIds = new Set(participants.map(p => p.userId));
+  return allUsers.map(u => ({ ...u, isParticipant: participantIds.has(u.id) }));
+}
+
+/** Adiciona ou remove um usuário como participante do torneio ativo */
+export async function toggleParticipant(userId: number, add: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const active = await db.select().from(activeTournament).limit(1);
+  const tournamentId = active[0]?.tournamentId;
+  if (!tournamentId) throw new Error("Nenhum torneio ativo com ID válido");
+  if (add) {
+    await db.insert(tournamentParticipants)
+      .values({ tournamentId, userId })
+      .onDuplicateKeyUpdate({ set: { joinedAt: new Date() } });
+  } else {
+    await db.delete(tournamentParticipants)
+      .where(eq(tournamentParticipants.tournamentId, tournamentId))
+      // @ts-ignore
+      .where(eq(tournamentParticipants.userId, userId));
+  }
+}
+
+/** Remove participante do torneio ativo */
+export async function removeParticipant(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const active = await db.select().from(activeTournament).limit(1);
+  const tournamentId = active[0]?.tournamentId;
+  if (!tournamentId) return;
+  await db.delete(tournamentParticipants)
+    .where(sql`${tournamentParticipants.tournamentId} = ${tournamentId} AND ${tournamentParticipants.userId} = ${userId}`);
+}
+
+/** Adiciona participante ao torneio ativo */
+export async function addParticipant(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const active = await db.select().from(activeTournament).limit(1);
+  const tournamentId = active[0]?.tournamentId;
+  if (!tournamentId) throw new Error("Nenhum torneio ativo com ID válido");
+  await db.insert(tournamentParticipants)
+    .values({ tournamentId, userId })
+    .onDuplicateKeyUpdate({ set: { joinedAt: new Date() } });
+}
+
+/** Retorna IDs dos participantes do torneio ativo (ou null se não há torneio com ID) */
+async function getActiveTournamentParticipantIds(): Promise<number[] | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const active = await db.select().from(activeTournament).limit(1);
+  const tournamentId = active[0]?.tournamentId ?? null;
+  if (!tournamentId) return null;
+  const participants = await db.select({ userId: tournamentParticipants.userId })
+    .from(tournamentParticipants)
+    .where(eq(tournamentParticipants.tournamentId, tournamentId));
+  return participants.map(p => p.userId);
+}
+
+/** Retorna o top N jogadores ordenados por moedas, filtrados pelos participantes do torneio ativo */
 export async function getTopPlayers(limit = 20) {
   const db = await getDb();
   if (!db) return [];
 
-  // Filtrar jogadores sem progresso real (0 moedas e sem territórios completados)
-  const rows = await db
+  const participantIds = await getActiveTournamentParticipantIds();
+
+  let query = db
+    .select({
+      userId: userProgress.userId,
+      coins: userProgress.coins,
+      completedLevels: userProgress.completedLevels,
+      currentLevel: userProgress.currentLevel,
+      updatedAt: userProgress.updatedAt,
+      name: users.name,
+      openId: users.openId,
+    })
+    .from(userProgress)
+    .innerJoin(users, eq(userProgress.userId, users.id));
+
+  if (participantIds && participantIds.length > 0) {
+    // Filtrar apenas participantes do torneio ativo com progresso real
+    return db
+      .select({
+        userId: userProgress.userId,
+        coins: userProgress.coins,
+        completedLevels: userProgress.completedLevels,
+        currentLevel: userProgress.currentLevel,
+        updatedAt: userProgress.updatedAt,
+        name: users.name,
+        openId: users.openId,
+      })
+      .from(userProgress)
+      .innerJoin(users, eq(userProgress.userId, users.id))
+      .where(inArray(userProgress.userId, participantIds))
+      .orderBy(desc(userProgress.coins))
+      .limit(limit);
+  } else if (participantIds && participantIds.length === 0) {
+    // Torneio existe mas sem participantes
+    return [];
+  }
+
+  // Sem torneio ativo: mostrar todos com progresso real (coins > 0)
+  return db
     .select({
       userId: userProgress.userId,
       coins: userProgress.coins,
@@ -247,6 +386,57 @@ export async function getTopPlayers(limit = 20) {
     .where(gt(userProgress.coins, 0))
     .orderBy(desc(userProgress.coins))
     .limit(limit);
+}
 
-  return rows;
+/** Retorna alunos filtrados pelos participantes do torneio ativo (para o painel do professor) */
+export async function getStudentsByTournament() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const participantIds = await getActiveTournamentParticipantIds();
+
+  const baseQuery = db
+    .select({
+      userId: userProgress.userId,
+      coins: userProgress.coins,
+      unlockedLevels: userProgress.unlockedLevels,
+      completedLevels: userProgress.completedLevels,
+      currentLevel: userProgress.currentLevel,
+      challengeProgress: userProgress.challengeProgress,
+      progressUpdatedAt: userProgress.updatedAt,
+      name: users.name,
+      email: users.email,
+      lastSignedIn: users.lastSignedIn,
+      createdAt: users.createdAt,
+      role: users.role,
+    })
+    .from(users)
+    .leftJoin(userProgress, eq(userProgress.userId, users.id));
+
+  if (participantIds && participantIds.length > 0) {
+    return db
+      .select({
+        userId: userProgress.userId,
+        coins: userProgress.coins,
+        unlockedLevels: userProgress.unlockedLevels,
+        completedLevels: userProgress.completedLevels,
+        currentLevel: userProgress.currentLevel,
+        challengeProgress: userProgress.challengeProgress,
+        progressUpdatedAt: userProgress.updatedAt,
+        name: users.name,
+        email: users.email,
+        lastSignedIn: users.lastSignedIn,
+        createdAt: users.createdAt,
+        role: users.role,
+      })
+      .from(users)
+      .leftJoin(userProgress, eq(userProgress.userId, users.id))
+      .where(inArray(users.id, participantIds))
+      .orderBy(desc(userProgress.coins));
+  } else if (participantIds && participantIds.length === 0) {
+    return [];
+  }
+
+  // Sem torneio: retornar todos
+  return baseQuery.orderBy(desc(userProgress.coins));
 }

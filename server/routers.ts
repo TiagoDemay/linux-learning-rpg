@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament } from "./db";
+import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -65,12 +65,12 @@ export const appRouter = router({
   }),
 
   professor: router({
-    /** Lista todos os alunos com progresso — exclusivo para admin */
+    /** Lista alunos do torneio ativo (ou todos se sem torneio) — exclusivo para admin */
     getStudents: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
       }
-      const rows = await getAllStudents();
+      const rows = await getStudentsByTournament();
       return rows.map((r, idx) => ({
         position: idx + 1,
         name: r.name ?? "Aventureiro Anônimo",
@@ -104,10 +104,55 @@ export const appRouter = router({
         return { success: true, tournamentId };
       }),
 
+    /** Cria um novo torneio e o define como ativo — exclusivo para admin */
+    createTournament: protectedProcedure
+      .input(z.object({ name: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+        }
+        const tournament = await createTournament(input.name);
+        return { success: true, tournament };
+      }),
+
+    /** Renomeia o torneio ativo — exclusivo para admin */
+    renameTournament: protectedProcedure
+      .input(z.object({ name: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+        }
+        await renameTournament(input.name);
+        return { success: true };
+      }),
+
+    /** Lista todos os usuários com flag de participação no torneio ativo — exclusivo para admin */
+    getParticipants: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+      }
+      return getAllUsersWithParticipation();
+    }),
+
+    /** Adiciona ou remove um participante do torneio ativo — exclusivo para admin */
+    toggleParticipant: protectedProcedure
+      .input(z.object({ userId: z.number(), add: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+        }
+        if (input.add) {
+          await addParticipant(input.userId);
+        } else {
+          await removeParticipant(input.userId);
+        }
+        return { success: true };
+      }),
+
     /** Retorna o torneio ativo atual — público */
     getActiveTournament: publicProcedure.query(async () => {
       const t = await getActiveTournament();
-      return { name: t.name, startedAt: t.startedAt };
+      return { name: t.name, startedAt: t.startedAt, tournamentId: (t as any).tournamentId ?? null };
     }),
 
     /** Retorna o histórico de torneios anteriores — exclusivo para admin */

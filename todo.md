@@ -142,3 +142,14 @@
 - [x] ProfessorPanel: corrigir visibilidade da seção "Histórico de Torneios"
 - [x] HUD: indicador de torneio ativo (nome do torneio atual)
 - [x] Criar tabela active_tournament para guardar o nome do torneio em curso
+
+## Sistema de Torneios (v2)
+- [ ] Schema: tabela tournaments (id, name, status, createdAt) e tournament_participants (tournamentId, userId)
+- [ ] Migrar banco com novas tabelas
+- [ ] Procedure: createTournament (cria torneio e define como ativo)
+- [ ] Procedure: renameTournament (renomeia torneio ativo)
+- [ ] Procedure: setTournamentParticipants (ativa/desativa jogadores no torneio)
+- [ ] Procedure: getTournamentParticipants (lista jogadores com status de participação)
+- [ ] Procedure: resetGame atualizado para usar participantes do torneio
+- [ ] UI: aba "Torneio Ativo" no ProfessorPanel com criação, renomeação e seleção de participantes
+- [ ] Ranking e painel de alunos filtrados por participantes do torneio ativo
