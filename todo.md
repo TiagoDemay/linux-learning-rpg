@@ -172,3 +172,4 @@
 ## Visual do Mapa
 - [x] Substituir linhas retas amarelas por caminhos medievais estilizados (SVG curvo, estrada de terra)
 - [x] Adicionar pedras miliárias SVG ao longo dos caminhos medievais no mapa
+- [x] Corrigir layout do tooltip dos marcadores: textos cortados, largura e fonte inadequadas

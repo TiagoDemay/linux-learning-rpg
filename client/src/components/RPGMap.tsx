@@ -370,18 +370,20 @@ export default function RPGMap({
                       : { bottom: "calc(100% + 12px)", top: "auto" }),
                     left: "50%",
                     transform: "translateX(-50%)",
-                    width: "180px",
-                    background: "rgba(62,39,20,0.95)",
+                    width: "240px",
+                    background: "rgba(62,39,20,0.97)",
                     border: "2px solid #8b6914",
                     color: "#f0deb4",
-                    fontSize: "0.7rem",
-                    lineHeight: 1.4,
+                    fontSize: "0.72rem",
+                    lineHeight: 1.5,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
                   }}
                 >
                   <div className="font-bold mb-1" style={{ fontFamily: "'MedievalSharp', serif", fontSize: "0.75rem", color: "#f5c842" }}>
                     {level.icon} {level.name}
                   </div>
-                  <div className="mb-2 opacity-90">{level.description.slice(0, 80)}...</div>
+                  <div className="mb-2 opacity-90" style={{ fontSize: "0.68rem" }}>{level.description.slice(0, 100)}...</div>
                   {task && (
                     <div className="border-t border-yellow-700 pt-1 mt-1">
                       <span className="text-yellow-400 font-bold">Missão:</span> {task.title}
@@ -393,12 +395,12 @@ export default function RPGMap({
                     {status === "unlocked" && <span className="text-blue-300">🔓 Desbloqueado</span>}
                     {status === "available" && <span className="text-green-300">🪙 Custo: {level.unlockCost} moedas</span>}
                     {status === "locked" && (
-                      <span className="text-gray-400">
-                        🔒 Bloqueado
-                        <span className="ml-2 text-yellow-600 font-semibold">
-                          — precisa de <span className="text-yellow-400">{level.unlockCost} 🪙</span> moedas
-                        </span>
-                      </span>
+                      <div className="text-gray-400">
+                        <span>🔒 Bloqueado</span>
+                        <div className="text-yellow-500 font-semibold mt-0.5">
+                          Precisa de <span className="text-yellow-300">{level.unlockCost}</span> 🪙 moedas
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
