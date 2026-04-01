@@ -100,3 +100,4 @@
 
 ## Ajustes de Posição dos Marcadores
 - [x] Floresta de Stallman: mover para baixo, ao lado da pedra com o GNU (x:14, y:28)
+- [x] Reposicionar os 9 marcadores restantes próximos aos símbolos visuais (mais para baixo)
