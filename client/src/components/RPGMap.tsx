@@ -392,7 +392,14 @@ export default function RPGMap({
                     {status === "current" && <span className="text-yellow-400">▶ Em progresso</span>}
                     {status === "unlocked" && <span className="text-blue-300">🔓 Desbloqueado</span>}
                     {status === "available" && <span className="text-green-300">🪙 Custo: {level.unlockCost} moedas</span>}
-                    {status === "locked" && <span className="text-gray-400">🔒 Bloqueado</span>}
+                    {status === "locked" && (
+                      <span className="text-gray-400">
+                        🔒 Bloqueado
+                        <span className="ml-2 text-yellow-600 font-semibold">
+                          — precisa de <span className="text-yellow-400">{level.unlockCost} 🪙</span> moedas
+                        </span>
+                      </span>
+                    )}
                   </div>
                 </div>
                 );
