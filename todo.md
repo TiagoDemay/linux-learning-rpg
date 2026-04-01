@@ -153,3 +153,10 @@
 - [ ] Procedure: resetGame atualizado para usar participantes do torneio
 - [ ] UI: aba "Torneio Ativo" no ProfessorPanel com criação, renomeação e seleção de participantes
 - [ ] Ranking e painel de alunos filtrados por participantes do torneio ativo
+
+## Novas funcionalidades (Abril 2026)
+- [ ] Banner de notificação para alunos ao criar/renomear torneio
+- [ ] Seleção em massa de participantes (Ativar todos / Desativar todos)
+- [ ] Deletar torneio do histórico
+- [ ] Deletar usuário (com confirmação)
+- [ ] Bloquear/desbloquear usuário

@@ -395,40 +395,30 @@ export async function getStudentsByTournament() {
 
   const participantIds = await getActiveTournamentParticipantIds();
 
+  const selectFields = {
+    userId: users.id,
+    coins: userProgress.coins,
+    unlockedLevels: userProgress.unlockedLevels,
+    completedLevels: userProgress.completedLevels,
+    currentLevel: userProgress.currentLevel,
+    challengeProgress: userProgress.challengeProgress,
+    progressUpdatedAt: userProgress.updatedAt,
+    name: users.name,
+    email: users.email,
+    lastSignedIn: users.lastSignedIn,
+    createdAt: users.createdAt,
+    role: users.role,
+    blocked: (users as any).blocked,
+  };
+
   const baseQuery = db
-    .select({
-      userId: userProgress.userId,
-      coins: userProgress.coins,
-      unlockedLevels: userProgress.unlockedLevels,
-      completedLevels: userProgress.completedLevels,
-      currentLevel: userProgress.currentLevel,
-      challengeProgress: userProgress.challengeProgress,
-      progressUpdatedAt: userProgress.updatedAt,
-      name: users.name,
-      email: users.email,
-      lastSignedIn: users.lastSignedIn,
-      createdAt: users.createdAt,
-      role: users.role,
-    })
+    .select(selectFields)
     .from(users)
     .leftJoin(userProgress, eq(userProgress.userId, users.id));
 
   if (participantIds && participantIds.length > 0) {
     return db
-      .select({
-        userId: userProgress.userId,
-        coins: userProgress.coins,
-        unlockedLevels: userProgress.unlockedLevels,
-        completedLevels: userProgress.completedLevels,
-        currentLevel: userProgress.currentLevel,
-        challengeProgress: userProgress.challengeProgress,
-        progressUpdatedAt: userProgress.updatedAt,
-        name: users.name,
-        email: users.email,
-        lastSignedIn: users.lastSignedIn,
-        createdAt: users.createdAt,
-        role: users.role,
-      })
+      .select(selectFields)
       .from(users)
       .leftJoin(userProgress, eq(userProgress.userId, users.id))
       .where(inArray(users.id, participantIds))
@@ -439,4 +429,72 @@ export async function getStudentsByTournament() {
 
   // Sem torneio: retornar todos
   return baseQuery.orderBy(desc(userProgress.coins));
+}
+
+/** Bloqueia ou desbloqueia um usuário */
+export async function setUserBlocked(userId: number, blocked: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ blocked: blocked ? 1 : 0 } as any).where(eq(users.id, userId));
+}
+
+/** Deleta um usuário e seu progresso */
+export async function deleteUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(userProgress).where(eq(userProgress.userId, userId));
+  await db.delete(tournamentParticipants).where(eq(tournamentParticipants.userId, userId));
+  await db.delete(users).where(eq(users.id, userId));
+}
+
+/** Deleta todas as entradas do histórico de um torneio específico */
+export async function deleteTournamentFromHistory(tournamentId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(tournamentHistory).where(eq(tournamentHistory.tournamentId, tournamentId));
+}
+
+/** Ativa todos os usuários como participantes do torneio ativo */
+export async function setAllParticipants(add: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const active = await db.select().from(activeTournament).limit(1);
+  const tournamentId = active[0]?.tournamentId;
+  if (!tournamentId) throw new Error("Nenhum torneio ativo com ID válido");
+  if (add) {
+    const allUsers = await db.select({ id: users.id }).from(users);
+    if (allUsers.length === 0) return;
+    const values = allUsers.map(u => ({ tournamentId, userId: u.id }));
+    for (const v of values) {
+      await db.insert(tournamentParticipants)
+        .values(v)
+        .onDuplicateKeyUpdate({ set: { joinedAt: new Date() } });
+    }
+  } else {
+    await db.delete(tournamentParticipants)
+      .where(eq(tournamentParticipants.tournamentId, tournamentId));
+  }
+}
+
+/** Retorna o timestamp do último evento de torneio (criação ou renomeação) */
+export async function getTournamentEventTimestamp() {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select({ startedAt: activeTournament.startedAt, name: activeTournament.name, tournamentId: activeTournament.tournamentId }).from(activeTournament).limit(1);
+  return rows[0] ?? null;
+}
+
+/** Retorna todos os usuários com campo blocked para o painel do professor */
+export async function getAllUsersForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    blocked: (users as any).blocked,
+    lastSignedIn: users.lastSignedIn,
+    createdAt: users.createdAt,
+  }).from(users).orderBy(desc(users.lastSignedIn));
 }

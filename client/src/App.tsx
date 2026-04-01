@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import ProfessorPanel from "./pages/ProfessorPanel";
+import { TournamentBanner } from "./components/TournamentBanner";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -33,6 +34,7 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
+          <TournamentBanner />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

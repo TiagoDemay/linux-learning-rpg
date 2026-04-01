@@ -113,6 +113,18 @@ export default function ProfessorPanel() {
   const toggleParticipantMutation = trpc.professor.toggleParticipant.useMutation({
     onSuccess: () => { refetchParticipants(); refetch(); }
   });
+  const setAllParticipantsMutation = trpc.professor.setAllParticipants.useMutation({
+    onSuccess: () => { refetchParticipants(); refetch(); }
+  });
+  const deleteTournamentMutation = trpc.professor.deleteTournamentHistory.useMutation({
+    onSuccess: () => { refetchHistory(); }
+  });
+  const deleteUserMutation = trpc.professor.deleteUser.useMutation({
+    onSuccess: () => { refetch(); refetchParticipants(); }
+  });
+  const setUserBlockedMutation = trpc.professor.setUserBlocked.useMutation({
+    onSuccess: () => { refetch(); }
+  });
 
   const [newTournamentName, setNewTournamentName] = useState("");
   const [renameValue, setRenameValue] = useState("");
@@ -357,11 +369,27 @@ export default function ProfessorPanel() {
 
             {/* ── Participantes ── */}
             <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <h3 className="font-medieval text-amber-400">👥 Participantes do Torneio</h3>
-                <span className="text-amber-500/60 text-xs">
-                  {participants?.filter(p => p.isParticipant).length ?? 0} de {participants?.length ?? 0} ativados
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-500/60 text-xs">
+                    {participants?.filter(p => p.isParticipant).length ?? 0} de {participants?.length ?? 0} ativados
+                  </span>
+                  <button
+                    onClick={() => setAllParticipantsMutation.mutate({ add: true })}
+                    disabled={setAllParticipantsMutation.isPending || !activeTournamentData?.tournamentId}
+                    className="px-3 py-1 bg-green-900/40 hover:bg-green-800/40 border border-green-700/50 rounded-lg text-green-300 text-xs font-semibold disabled:opacity-40 transition-colors"
+                  >
+                    ✔ Ativar todos
+                  </button>
+                  <button
+                    onClick={() => setAllParticipantsMutation.mutate({ add: false })}
+                    disabled={setAllParticipantsMutation.isPending || !activeTournamentData?.tournamentId}
+                    className="px-3 py-1 bg-red-900/40 hover:bg-red-800/40 border border-red-700/50 rounded-lg text-red-300 text-xs font-semibold disabled:opacity-40 transition-colors"
+                  >
+                    ✕ Desativar todos
+                  </button>
+                </div>
               </div>
               {!activeTournamentData?.tournamentId ? (
                 <p className="text-amber-500/60 text-sm text-center py-4">Crie um torneio primeiro para gerenciar participantes.</p>
@@ -497,6 +525,7 @@ export default function ProfessorPanel() {
                       </th>
                     ))}
                     <th className="px-4 py-3 text-left text-amber-400/80 font-semibold">Detalhes</th>
+                    <th className="px-4 py-3 text-left text-amber-400/80 font-semibold">⚙️ Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -605,6 +634,34 @@ export default function ProfessorPanel() {
                               {isExpanded ? "▲ Fechar" : "▼ Ver mais"}
                             </button>
                           </td>
+
+                          {/* Ações: bloquear/deletar */}
+                          <td className="px-4 py-3">
+                            {student.role !== "admin" && (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => setUserBlockedMutation.mutate({ userId: student.userId!, blocked: !student.blocked })}
+                                  disabled={setUserBlockedMutation.isPending}
+                                  className="px-2 py-1 text-xs rounded border transition-colors disabled:opacity-40 bg-yellow-900/30 hover:bg-yellow-800/40 border-yellow-800/50 text-yellow-300"
+                                  title={student.blocked ? "Desbloquear usuário" : "Bloquear usuário"}
+                                >
+                                  {student.blocked ? "🔓" : "🔒"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Deletar permanentemente o usuário "${student.name}"? Esta ação não pode ser desfeita.`)) {
+                                      deleteUserMutation.mutate({ userId: student.userId! });
+                                    }
+                                  }}
+                                  disabled={deleteUserMutation.isPending}
+                                  className="px-2 py-1 text-xs rounded border transition-colors disabled:opacity-40 bg-red-900/30 hover:bg-red-800/40 border-red-800/50 text-red-300"
+                                  title="Deletar usuário"
+                                >
+                                  🗑
+                                </button>
+                              </div>
+                            )}
+                          </td>
                         </tr>
 
                         {/* Expanded detail row */}
@@ -679,23 +736,41 @@ export default function ProfessorPanel() {
                   {/* Lista de torneios */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {tournaments.map((t) => (
-                      <button
+                      <div
                         key={t.tournamentId}
-                        onClick={() => setSelectedTournament(
-                          selectedTournament === t.tournamentId ? null : t.tournamentId
-                        )}
-                        className={`text-left rounded-lg p-4 border transition-all ${
+                        className={`relative rounded-lg border transition-all ${
                           selectedTournament === t.tournamentId
                             ? "bg-amber-900/30 border-amber-600/60"
-                            : "bg-black/20 border-amber-900/30 hover:bg-amber-900/10"
+                            : "bg-black/20 border-amber-900/30"
                         }`}
                       >
-                        <div className="font-semibold text-amber-300 text-sm truncate">{t.tournamentName}</div>
-                        <div className="text-amber-500/60 text-xs mt-1">{formatDate(t.resetAt)}</div>
-                        <div className="text-amber-400/70 text-xs mt-2">
-                          {t.playerCount} jogador{t.playerCount !== 1 ? "es" : ""}
-                        </div>
-                      </button>
+                        <button
+                          onClick={() => setSelectedTournament(
+                            selectedTournament === t.tournamentId ? null : t.tournamentId
+                          )}
+                          className="text-left w-full p-4 hover:bg-amber-900/10 rounded-lg transition-all"
+                        >
+                          <div className="font-semibold text-amber-300 text-sm truncate pr-8">{t.tournamentName}</div>
+                          <div className="text-amber-500/60 text-xs mt-1">{formatDate(t.resetAt)}</div>
+                          <div className="text-amber-400/70 text-xs mt-2">
+                            {t.playerCount} jogador{t.playerCount !== 1 ? "es" : ""}
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Deletar o histórico de "${t.tournamentName}"? Esta ação não pode ser desfeita.`)) {
+                              deleteTournamentMutation.mutate({ tournamentId: t.tournamentId });
+                              if (selectedTournament === t.tournamentId) setSelectedTournament(null);
+                            }
+                          }}
+                          disabled={deleteTournamentMutation.isPending}
+                          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-md bg-red-900/30 hover:bg-red-800/50 border border-red-800/40 text-red-400 hover:text-red-200 text-xs transition-colors disabled:opacity-40"
+                          title="Deletar torneio"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     ))}
                   </div>
 

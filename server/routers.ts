@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant } from "./db";
+import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant, setAllParticipants, deleteTournamentFromHistory, deleteUser, setUserBlocked, getTournamentEventTimestamp, getAllUsersForAdmin } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -73,6 +73,7 @@ export const appRouter = router({
       const rows = await getStudentsByTournament();
       return rows.map((r, idx) => ({
         position: idx + 1,
+        userId: r.userId ?? null,
         name: r.name ?? "Aventureiro Anônimo",
         email: r.email ?? null,
         coins: r.coins ?? 0,
@@ -85,6 +86,7 @@ export const appRouter = router({
         progressUpdatedAt: r.progressUpdatedAt ?? null,
         joinedAt: r.createdAt,
         role: r.role,
+        blocked: (r as any).blocked ?? 0 as number,
       }));
     }),
 
@@ -176,6 +178,55 @@ export const appRouter = router({
           challengeProgress: (p.challengeProgress ?? {}) as Record<string, number>,
         })),
       }));
+    }),
+
+    /** Deleta um torneio do histórico — exclusivo para admin */
+    deleteTournamentHistory: protectedProcedure
+      .input(z.object({ tournamentId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        await deleteTournamentFromHistory(input.tournamentId);
+        return { success: true };
+      }),
+
+    /** Ativa ou desativa TODOS os usuários como participantes do torneio ativo — exclusivo para admin */
+    setAllParticipants: protectedProcedure
+      .input(z.object({ add: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        await setAllParticipants(input.add);
+        return { success: true };
+      }),
+
+    /** Deleta um usuário e seu progresso — exclusivo para admin */
+    deleteUser: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível deletar o próprio usuário." });
+        await deleteUser(input.userId);
+        return { success: true };
+      }),
+
+    /** Bloqueia ou desbloqueia um usuário — exclusivo para admin */
+    setUserBlocked: protectedProcedure
+      .input(z.object({ userId: z.number(), blocked: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível bloquear o próprio usuário." });
+        await setUserBlocked(input.userId, input.blocked);
+        return { success: true };
+      }),
+
+    /** Retorna todos os usuários para gestão de admin — exclusivo para admin */
+    getAllUsers: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return getAllUsersForAdmin();
+    }),
+
+    /** Retorna o timestamp do último evento de torneio (para banner de notificação) — público */
+    getTournamentEvent: publicProcedure.query(async () => {
+      return getTournamentEventTimestamp();
     }),
   }),
 
