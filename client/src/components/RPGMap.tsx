@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { LEVELS, canUnlock, type Level } from "../data/levels";
 import { getTaskByLevel } from "../data/tasks";
 
@@ -33,6 +34,63 @@ function getLevelById(id: string) {
   return LEVELS.find((l) => l.id === id);
 }
 
+interface TooltipData {
+  id: string;
+  rect: DOMRect;
+}
+
+/** Tooltip renderizado via portal no body para evitar clipping do container pai */
+function MapTooltip({
+  tooltipData,
+  children,
+}: {
+  tooltipData: TooltipData;
+  children: React.ReactNode;
+}) {
+  const TOOLTIP_WIDTH = 260;
+  const TOOLTIP_MARGIN = 12;
+
+  const { rect } = tooltipData;
+
+  // Posição horizontal: centralizado no marcador, mas clamped dentro da viewport
+  let left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - TOOLTIP_WIDTH - 8));
+
+  // Posição vertical: prefere acima do marcador; se não couber, vai abaixo
+  const spaceAbove = rect.top;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const showBelow = spaceAbove < 180 || spaceBelow > spaceAbove;
+
+  const top = showBelow
+    ? rect.bottom + TOOLTIP_MARGIN
+    : rect.top - TOOLTIP_MARGIN;
+
+  return createPortal(
+    <div
+      style={{
+        position: "fixed",
+        left,
+        top,
+        transform: showBelow ? "none" : "translateY(-100%)",
+        width: TOOLTIP_WIDTH,
+        zIndex: 9999,
+        background: "rgba(42,24,10,0.98)",
+        border: "2px solid #8b6914",
+        borderRadius: "10px",
+        padding: "12px 14px",
+        color: "#f0deb4",
+        fontSize: "0.75rem",
+        lineHeight: 1.55,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5)",
+        pointerEvents: "none",
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
 export default function RPGMap({
   unlockedLevels,
   completedLevels,
@@ -43,6 +101,7 @@ export default function RPGMap({
   onOpenShop,
 }: RPGMapProps) {
   const [hoveredLevel, setHoveredLevel] = useState<string | null>(null);
+  const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
   const [sparkles, setSparkles] = useState<{ id: number; x: number; y: number }[]>([]);
   const [sparkleId, setSparkleId] = useState(0);
 
@@ -69,6 +128,18 @@ export default function RPGMap({
     if (canUnlock(level.id, unlockedLevels, coins)) return "available";
     return "locked";
   };
+
+  const handleMouseEnter = useCallback((id: string, el: HTMLDivElement | null) => {
+    setHoveredLevel(id);
+    if (el) {
+      setTooltipData({ id, rect: el.getBoundingClientRect() });
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredLevel(null);
+    setTooltipData(null);
+  }, []);
 
   return (
     <div className="relative w-full h-full" style={{ aspectRatio: "16/9", maxHeight: "calc(100vh - 72px)", margin: "auto" }}>
@@ -115,22 +186,17 @@ export default function RPGMap({
               unlockedLevels.includes(fromId) && unlockedLevels.includes(toId);
 
             // Calcular ponto de controle para curva quadrática Bézier
-            // Deslocar o ponto de controle perpendicularmente ao caminho para criar curva natural
             const mx = (from.x + to.x) / 2;
             const my = (from.y + to.y) / 2;
             const dx = to.x - from.x;
             const dy = to.y - from.y;
             const len = Math.sqrt(dx * dx + dy * dy);
-            // Curvatura proporcional ao comprimento, máx 8 unidades
             const curve = Math.min(len * 0.18, 8);
-            // Perpendicular normalizado com leve variação determinística por par de nós
             const seed = (fromId.charCodeAt(0) + toId.charCodeAt(0)) % 2 === 0 ? 1 : -1;
             const cpx = mx + ((-dy / len) * curve * seed);
             const cpy = my + ((dx / len) * curve * seed);
             const d = `M ${from.x} ${from.y} Q ${cpx} ${cpy} ${to.x} ${to.y}`;
 
-            // Calcular pontos ao longo da curva Bézier quadrática para as pedras miliárias
-            // Usamos t=0.33 e t=0.66 para posicionar duas pedras por caminho
             const bezierPoint = (t: number) => {
               const bx = (1-t)*(1-t)*from.x + 2*(1-t)*t*cpx + t*t*to.x;
               const by = (1-t)*(1-t)*from.y + 2*(1-t)*t*cpy + t*t*to.y;
@@ -187,20 +253,15 @@ export default function RPGMap({
                 {/* Pedras miliárias ao longo do caminho */}
                 {[stone1, stone2].map((pt, i) => (
                   <g key={i} transform={`translate(${pt.x}, ${pt.y})`} opacity={isActive ? 0.9 : 0.5}>
-                    {/* Sombra da pedra */}
                     <ellipse cx="0.15" cy="0.9" rx="0.7" ry="0.2" fill="#1a0f00" opacity="0.3" />
-                    {/* Base da pedra (enterrada no chão) */}
                     <rect x="-0.45" y="0.55" width="0.9" height="0.35" rx="0.1"
                       fill={isActive ? "#5c3d1a" : "#3a2a12"} opacity="0.8" />
-                    {/* Corpo principal da pedra */}
                     <rect x="-0.38" y="-0.55" width="0.76" height="1.15" rx="0.15"
                       fill={isActive ? "#8a7055" : "#5a4a35"}
                       stroke={isActive ? "#4a3020" : "#2a1a0a"}
                       strokeWidth="0.06" />
-                    {/* Face frontal (mais clara) */}
                     <rect x="-0.3" y="-0.48" width="0.6" height="1.0" rx="0.1"
                       fill={isActive ? "#a08060" : "#6a5a45"} opacity="0.7" />
-                    {/* Marca na pedra (X romano ou marca de distância) */}
                     <text
                       x="0" y="0.12"
                       textAnchor="middle"
@@ -210,7 +271,6 @@ export default function RPGMap({
                       fill={isActive ? "#2a1a0a" : "#1a0f00"}
                       opacity="0.8"
                     >{i === 0 ? "I" : "II"}</text>
-                    {/* Linha horizontal decorativa */}
                     <line x1="-0.25" y1="-0.18" x2="0.25" y2="-0.18"
                       stroke={isActive ? "#3a2510" : "#2a1a0a"}
                       strokeWidth="0.04" opacity="0.6" />
@@ -272,8 +332,8 @@ export default function RPGMap({
                 transform: `translate(-50%, -50%) scale(${isHovered ? 1.15 : 1})`,
                 zIndex: isHovered ? 20 : 10,
               }}
-              onMouseEnter={() => setHoveredLevel(level.id)}
-              onMouseLeave={() => setHoveredLevel(null)}
+              onMouseEnter={(e) => handleMouseEnter(level.id, e.currentTarget)}
+              onMouseLeave={handleMouseLeave}
               onClick={() => handleLevelClick(level)}
             >
               {/* Node circle */}
@@ -358,54 +418,62 @@ export default function RPGMap({
                 </div>
               )}
 
-              {/* Tooltip on hover — aparece abaixo quando y < 40% (próximo ao topo), acima caso contrário */}
-              {isHovered && (() => {
-                const showBelow = level.y < 40;
-                return (
-                <div
-                  className="absolute z-30 rounded-lg p-3 shadow-xl"
-                  style={{
-                    ...(showBelow
-                      ? { top: "calc(100% + 12px)", bottom: "auto" }
-                      : { bottom: "calc(100% + 12px)", top: "auto" }),
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "240px",
-                    background: "rgba(62,39,20,0.97)",
-                    border: "2px solid #8b6914",
-                    color: "#f0deb4",
-                    fontSize: "0.72rem",
-                    lineHeight: 1.5,
-                    whiteSpace: "normal",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  <div className="font-bold mb-1" style={{ fontFamily: "'MedievalSharp', serif", fontSize: "0.75rem", color: "#f5c842" }}>
+              {/* Tooltip via portal (sem clipping) */}
+              {isHovered && tooltipData?.id === level.id && (
+                <MapTooltip tooltipData={tooltipData}>
+                  <div
+                    style={{
+                      fontFamily: "'MedievalSharp', serif",
+                      fontSize: "0.8rem",
+                      color: "#f5c842",
+                      fontWeight: "bold",
+                      marginBottom: "6px",
+                      borderBottom: "1px solid rgba(139,105,20,0.5)",
+                      paddingBottom: "6px",
+                    }}
+                  >
                     {level.icon} {level.name}
                   </div>
-                  <div className="mb-2 opacity-90" style={{ fontSize: "0.68rem" }}>{level.description.slice(0, 100)}...</div>
+                  <div style={{ fontSize: "0.72rem", opacity: 0.9, marginBottom: "8px", color: "#f0deb4" }}>
+                    {level.description}
+                  </div>
                   {task && (
-                    <div className="border-t border-yellow-700 pt-1 mt-1">
-                      <span className="text-yellow-400 font-bold">Missão:</span> {task.title}
+                    <div
+                      style={{
+                        fontSize: "0.7rem",
+                        borderTop: "1px solid rgba(139,105,20,0.4)",
+                        paddingTop: "6px",
+                        marginTop: "4px",
+                        color: "#f0deb4",
+                      }}
+                    >
+                      <span style={{ color: "#f5c842", fontWeight: "bold" }}>Missão:</span>{" "}
+                      {task.title}
                     </div>
                   )}
-                  <div className="mt-1">
-                    {status === "completed" && <span className="text-green-400">✓ Concluído</span>}
-                    {status === "current" && <span className="text-yellow-400">▶ Em progresso</span>}
-                    {status === "unlocked" && <span className="text-blue-300">🔓 Desbloqueado</span>}
-                    {status === "available" && <span className="text-green-300">🪙 Custo: {level.unlockCost} moedas</span>}
+                  <div style={{ marginTop: "8px", fontSize: "0.72rem" }}>
+                    {status === "completed" && <span style={{ color: "#4ade80" }}>✓ Concluído</span>}
+                    {status === "current" && <span style={{ color: "#fbbf24" }}>▶ Em progresso</span>}
+                    {status === "unlocked" && <span style={{ color: "#93c5fd" }}>🔓 Desbloqueado</span>}
+                    {status === "available" && (
+                      <span style={{ color: "#86efac" }}>🪙 Custo: {level.unlockCost} moedas — clique para desbloquear!</span>
+                    )}
                     {status === "locked" && (
-                      <div className="text-gray-400">
-                        <span>🔒 Bloqueado</span>
-                        <div className="text-yellow-500 font-semibold mt-0.5">
-                          Precisa de <span className="text-yellow-300">{level.unlockCost}</span> 🪙 moedas
+                      <div>
+                        <div style={{ color: "#9ca3af" }}>🔒 Bloqueado</div>
+                        <div style={{ color: "#fde68a", marginTop: "4px" }}>
+                          Precisa de{" "}
+                          <span style={{ color: "#fcd34d", fontWeight: "bold" }}>{level.unlockCost}</span>{" "}
+                          🪙 moedas para desbloquear
+                        </div>
+                        <div style={{ color: "#6b7280", fontSize: "0.65rem", marginTop: "4px" }}>
+                          Você tem {coins} 🪙 moedas
                         </div>
                       </div>
                     )}
                   </div>
-                </div>
-                );
-              })()}
+                </MapTooltip>
+              )}
             </div>
           );
         })}
@@ -414,7 +482,7 @@ export default function RPGMap({
         {(() => {
           const shopX = 44;
           const shopY = 60;
-          const [shopHovered, setShopHovered] = [hoveredLevel === "__shop__", (v: boolean) => setHoveredLevel(v ? "__shop__" : null)] as const;
+          const shopHovered = hoveredLevel === "__shop__";
           return (
             <div
               className="absolute cursor-pointer select-none transition-all duration-200"
@@ -424,8 +492,8 @@ export default function RPGMap({
                 transform: `translate(-50%, -50%) scale(${shopHovered ? 1.2 : 1})`,
                 zIndex: shopHovered ? 20 : 10,
               }}
-              onMouseEnter={() => setHoveredLevel("__shop__")}
-              onMouseLeave={() => setHoveredLevel(null)}
+              onMouseEnter={(e) => handleMouseEnter("__shop__", e.currentTarget)}
+              onMouseLeave={handleMouseLeave}
               onClick={onOpenShop}
             >
               {/* Animated glow ring */}
@@ -478,31 +546,29 @@ export default function RPGMap({
               >
                 Loja do Tux
               </div>
-              {/* Tooltip */}
-              {shopHovered && (
-                <div
-                  className="absolute z-30 rounded-lg p-3 shadow-xl"
-                  style={{
-                    bottom: "calc(100% + 12px)",
-                    top: "auto",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "190px",
-                    background: "rgba(62,39,20,0.97)",
-                    border: "2px solid #f5c842",
-                    color: "#f0deb4",
-                    fontSize: "0.7rem",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  <div className="font-bold mb-1" style={{ fontFamily: "'MedievalSharp', serif", fontSize: "0.75rem", color: "#f5c842" }}>
+              {/* Shop tooltip via portal */}
+              {shopHovered && tooltipData?.id === "__shop__" && (
+                <MapTooltip tooltipData={tooltipData}>
+                  <div
+                    style={{
+                      fontFamily: "'MedievalSharp', serif",
+                      fontSize: "0.8rem",
+                      color: "#f5c842",
+                      fontWeight: "bold",
+                      marginBottom: "6px",
+                      borderBottom: "1px solid rgba(245,200,66,0.4)",
+                      paddingBottom: "6px",
+                    }}
+                  >
                     🐧 Loja do Tux
                   </div>
-                  <div className="mb-2 opacity-90">Adquira ferramentas, dicas e poderes para sua jornada pelo reino Linux.</div>
-                  <div style={{ color: "#f5c842", fontSize: "0.65rem" }}>
-                    👀 Clique para abrir a loja
+                  <div style={{ fontSize: "0.72rem", opacity: 0.9, marginBottom: "8px", color: "#f0deb4" }}>
+                    Adquira ferramentas, dicas e poderes para sua jornada pelo reino Linux.
                   </div>
-                </div>
+                  <div style={{ color: "#f5c842", fontSize: "0.7rem" }}>
+                    👆 Clique para abrir a loja
+                  </div>
+                </MapTooltip>
               )}
             </div>
           );
