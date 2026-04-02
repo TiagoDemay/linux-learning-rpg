@@ -174,3 +174,4 @@
 - [x] Adicionar pedras miliárias SVG ao longo dos caminhos medievais no mapa
 - [x] Corrigir layout do tooltip dos marcadores: textos cortados, largura e fonte inadequadas
 - [x] Corrigir definitivamente overflow/corte de texto no tooltip: usar portal/posicionamento fixo para evitar clipping pelo overflow:hidden do container pai
+- [x] Ajustar unlockCost do Reino de Torvalds para 385 moedas (maior custo de todos os territórios)

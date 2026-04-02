@@ -73,7 +73,7 @@ export const LEVELS: Level[] = [
     emoji: "👑",
     x: 50,
     y: 40,
-    unlockCost: 30,
+    unlockCost: 385,
     connections: ["tundra-slackware", "pantano-systemd", "cidade-gnu", "deserto-debian"],
     biome: "kingdom",
     color: "#8b4513",
