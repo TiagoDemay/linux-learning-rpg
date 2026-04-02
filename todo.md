@@ -175,3 +175,4 @@
 - [x] Corrigir layout do tooltip dos marcadores: textos cortados, largura e fonte inadequadas
 - [x] Corrigir definitivamente overflow/corte de texto no tooltip: usar portal/posicionamento fixo para evitar clipping pelo overflow:hidden do container pai
 - [x] Ajustar unlockCost do Reino de Torvalds para 385 moedas (maior custo de todos os territórios)
+- [x] Adicionar anel dourado pulsante ao marcador do Reino de Torvalds (destaque como desafio final)

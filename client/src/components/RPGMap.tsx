@@ -336,19 +336,56 @@ export default function RPGMap({
               onMouseLeave={handleMouseLeave}
               onClick={() => handleLevelClick(level)}
             >
+              {/* Anel duplo pulsante exclusivo do Reino de Torvalds */}
+              {level.id === "reino-torvalds" && (
+                <>
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      width: "72px",
+                      height: "72px",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      border: "2px solid #f5c842",
+                      animation: "kingdom-ring-outer 2s ease-in-out infinite",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      width: "62px",
+                      height: "62px",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      border: "2px solid #fde68a",
+                      animation: "kingdom-ring-inner 2s ease-in-out infinite",
+                      animationDelay: "0.4s",
+                      pointerEvents: "none",
+                    }}
+                  />
+                </>
+              )}
+
               {/* Node circle */}
               <div
                 className="flex flex-col items-center gap-0.5"
                 style={{
-                  border: style.border,
+                  border: level.id === "reino-torvalds" ? "3px solid #f5c842" : style.border,
                   borderRadius: "50%",
                   width: "52px",
                   height: "52px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: style.background,
-                  boxShadow: style.shadow,
+                  background: level.id === "reino-torvalds" && status === "locked"
+                    ? "rgba(139,69,19,0.75)"
+                    : style.background,
+                  boxShadow: level.id === "reino-torvalds"
+                    ? "0 0 20px rgba(245,200,66,0.8), 0 0 40px rgba(245,200,66,0.3)"
+                    : style.shadow,
                   position: "relative",
                 }}
               >
@@ -613,6 +650,14 @@ export default function RPGMap({
         @keyframes shop-pulse {
           0%, 100% { transform: translate(-2px, -2px) scale(1); opacity: 0.7; }
           50% { transform: translate(-2px, -2px) scale(1.25); opacity: 0.2; }
+        }
+        @keyframes kingdom-ring-outer {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; box-shadow: 0 0 8px rgba(245,200,66,0.6); }
+          50% { transform: translate(-50%, -50%) scale(1.35); opacity: 0.1; box-shadow: 0 0 24px rgba(245,200,66,0.2); }
+        }
+        @keyframes kingdom-ring-inner {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+          50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.15; }
         }
       `}</style>
     </div>
