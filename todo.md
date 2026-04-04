@@ -172,7 +172,14 @@
 ## Visual do Mapa
 - [x] Substituir linhas retas amarelas por caminhos medievais estilizados (SVG curvo, estrada de terra)
 - [x] Adicionar pedras miliárias SVG ao longo dos caminhos medievais no mapa
+<<<<<<< Updated upstream
 - [x] Corrigir layout do tooltip dos marcadores: textos cortados, largura e fonte inadequadas
 - [x] Corrigir definitivamente overflow/corte de texto no tooltip: usar portal/posicionamento fixo para evitar clipping pelo overflow:hidden do container pai
 - [x] Ajustar unlockCost do Reino de Torvalds para 385 moedas (maior custo de todos os territórios)
 - [x] Adicionar anel dourado pulsante ao marcador do Reino de Torvalds (destaque como desafio final)
+=======
+
+## Ajustes de Custos e Descrições (Abril 2026)
+- [x] Ajustar custos de desbloqueio: 0, 100, 120, 125, 135, 140, 145, 150, 300, 777
+- [x] Melhorar descrições dos desafios do 3º ao 10º território (sem dicas nem comandos explícitos)
+>>>>>>> Stashed changes

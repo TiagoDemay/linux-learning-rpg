@@ -439,8 +439,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-1",
         title: "Desafio I — O Grimório de Hello World",
         description:
-          "Nas montanhas de Kernighan, toda jornada começa com um 'Hello, World!'. " +
-          "Crie o arquivo 'hello.txt' com o conteúdo 'Hello, World!' usando o comando echo.",
+          "Nas montanhas de Kernighan, toda jornada começa com uma mensagem gravada em pedra. " +
+          "Existe um comando que imprime texto na tela e também pode redirecionar essa saída para " +
+          "um arquivo. Crie o arquivo 'hello.txt' contendo exatamente o texto 'Hello, World!' " +
+          "usando esse redirecionamento.",
         hint: "echo 'Hello, World!' > hello.txt",
         reward: 10,
         commands: ["echo"],
@@ -454,8 +456,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-2",
         title: "Desafio II — A Forja do Script",
         description:
-          "Todo ferreiro das montanhas precisa de um script! Crie 'saudar.sh' com o conteúdo " +
-          "'#!/bin/bash\\necho Olá, Aventureiro!' e depois torne-o executável com chmod +x.",
+          "Todo ferreiro das montanhas forja suas próprias ferramentas. Um script shell é um arquivo " +
+          "de texto com uma sequência de comandos. A primeira linha deve ser o shebang (#!/bin/bash) " +
+          "para indicar o interpretador. Crie um arquivo chamado 'saudar.sh' com esse cabeçalho " +
+          "e um comando que exiba uma saudação. Depois, torne-o executável alterando suas permissões.",
         hint: "echo '#!/bin/bash\necho Olá, Aventureiro!' > saudar.sh  \u2192  chmod +x saudar.sh",
         reward: 15,
         commands: ["echo", "chmod"],
@@ -470,9 +474,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-3",
         title: "Desafio III — O Ouro do Which",
         description:
-          "Nas montanhas, saber onde estão suas ferramentas é essencial! " +
-          "Use which bash para descobrir o caminho do interpretador bash e " +
-          "which python3 para localizar o Python.",
+          "Nas montanhas, saber onde estão suas ferramentas é tão importante quanto saber usá-las. " +
+          "Quando você digita um comando no terminal, o shell o procura em diretórios listados no PATH. " +
+          "Existe uma ferramenta que revela o caminho absoluto de qualquer executável instalado. " +
+          "Use-a para descobrir onde estão o interpretador bash e o Python3 no sistema.",
         hint: "which bash  \u2192  which python3",
         reward: 12,
         commands: ["which"],
@@ -486,8 +491,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-4",
         title: "Desafio IV — O Mapa das Variáveis",
         description:
-          "As variáveis de ambiente são o mapa secreto das montanhas! " +
-          "Use env para listar todas as variáveis de ambiente do sistema.",
+          "O ambiente de execução de cada processo é definido por um conjunto de variáveis: " +
+          "o diretório home, o usuário atual, o PATH, o editor padrão e dezenas de outras. " +
+          "Existe um comando que imprime todas essas variáveis de ambiente na tela. " +
+          "Use-o para explorar o mapa completo do seu ambiente de execução.",
         hint: "env",
         reward: 12,
         commands: ["env"],
@@ -498,8 +505,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-5",
         title: "Desafio V — Gravando no Pergaminho",
         description:
-          "Exporte uma variável de ambiente chamada AVENTUREIRO com seu nome! " +
-          "Use export AVENTUREIRO='SeuNome' e depois echo $AVENTUREIRO para confirmar.",
+          "Variáveis de ambiente podem ser criadas e exportadas para que processos filhos as " +
+          "herdem. Existe um comando que cria uma variável e a torna disponível para o ambiente. " +
+          "Crie uma variável chamada AVENTUREIRO com qualquer valor que represente seu nome, " +
+          "depois confirme que ela foi criada exibindo seu conteúdo no terminal.",
         hint: "export AVENTUREIRO='Kernighan'  \u2192  echo $AVENTUREIRO",
         reward: 15,
         commands: ["export", "echo"],
@@ -513,8 +522,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-6",
         title: "Desafio VI — O Alias do Mestre",
         description:
-          "Os mestres das montanhas criam atalhos mágicos! " +
-          "Crie um alias chamado 'll' que execute 'ls -la' usando alias ll='ls -la'.",
+          "Mestres do terminal criam atalhos para comandos longos ou frequentes. Um alias é um " +
+          "apelido que substitui um comando mais complexo. Existe um comando para criar esses " +
+          "atalhos na sessão atual do shell. Crie um alias de nome 'll' que execute a listagem " +
+          "detalhada de arquivos com todos os arquivos visíveis, incluindo os ocultos.",
         hint: "alias ll='ls -la'",
         reward: 18,
         commands: ["alias"],
@@ -525,9 +536,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-7",
         title: "Desafio VII — A Pedra do Grep",
         description:
-          "O grep é a pedra de toque dos mestres! Crie 'registros.txt' com três linhas: " +
-          "'erro: disco cheio', 'info: sistema ok', 'erro: memória baixa'. " +
-          "Depois use grep 'erro' registros.txt para filtrar apenas as linhas de erro.",
+          "Logs de sistema podem ter milhares de linhas — encontrar o que importa exige filtros. " +
+          "Crie um arquivo chamado 'registros.txt' contendo três linhas: uma com 'erro: disco cheio', " +
+          "outra com 'info: sistema ok' e uma terceira com 'erro: memória baixa'. " +
+          "Em seguida, use a ferramenta de busca por padrões em texto para exibir apenas as linhas " +
+          "que contêm a palavra 'erro'.",
         hint: "printf 'erro: disco cheio\ninfo: sistema ok\nerro: memória baixa' > registros.txt  \u2192  grep 'erro' registros.txt",
         reward: 20,
         commands: ["echo", "grep"],
@@ -542,9 +555,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-8",
         title: "Desafio VIII — O Cinzel do Sed",
         description:
-          "O sed é o cinzel que esculpe textos nas rochas! " +
-          "Use sed para substituir 'erro' por 'ERRO' no arquivo registros.txt: " +
-          "sed 's/erro/ERRO/g' registros.txt",
+          "O editor de fluxo é uma das ferramentas mais poderosas para transformação de texto no " +
+          "Linux. Ele pode substituir padrões em arquivos sem abrir um editor interativo. " +
+          "Sua sintaxe de substituição segue o formato s/padrão/substituto/flags. " +
+          "Use-o para substituir todas as ocorrências de 'erro' por 'ERRO' no arquivo registros.txt.",
         hint: "sed 's/erro/ERRO/g' registros.txt",
         reward: 22,
         commands: ["sed"],
@@ -555,9 +569,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-9",
         title: "Desafio IX — O Martelo do Awk",
         description:
-          "O awk é o martelo mais poderoso das montanhas! " +
-          "Use awk para imprimir apenas a segunda palavra de cada linha do registros.txt: " +
-          "awk '{print $2}' registros.txt",
+          "O awk é uma linguagem de processamento de texto orientada a registros e campos. " +
+          "Por padrão, ele divide cada linha em campos separados por espaço, acessíveis como " +
+          "$1, $2, $3 e assim por diante. Escreva um programa awk de uma linha que imprima " +
+          "apenas o segundo campo de cada linha do arquivo registros.txt.",
         hint: "awk '{print $2}' registros.txt",
         reward: 25,
         commands: ["awk"],
@@ -568,8 +583,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "montanhas-10",
         title: "Desafio X — O Ritual do Compilador",
         description:
-          "O ritual supremo das montanhas: compile um programa! Crie 'programa.c' com o conteúdo " +
-          "'int main(){return 0;}' e depois simule a compilação com gcc programa.c -o programa.",
+          "O ritual supremo das montanhas: transformar código-fonte em um executável. " +
+          "Crie um arquivo chamado 'programa.c' contendo uma função main mínima em C " +
+          "(int main(){return 0;}). Em seguida, use o compilador GNU C para compilar esse arquivo " +
+          "e gerar um executável chamado 'programa'. O compilador aceita o arquivo fonte como " +
+          "argumento e uma flag -o para definir o nome do binário de saída.",
         hint: "echo 'int main(){return 0;}' > programa.c  \u2192  gcc programa.c -o programa",
         reward: 30,
         commands: ["echo", "gcc"],
@@ -595,8 +613,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-1",
         title: "Desafio I — Os Ecos do Pantâno",
         description:
-          "No pantâno, os daemons sussurram! Use ps aux para ver todos os processos " +
-          "em execução no sistema e descobrir quais espíritos habitam este lugar.",
+          "No pântano, os daemons sussurram entre a névoa. Cada processo em execução é um espírito " +
+          "que consome recursos do sistema. Existe uma ferramenta clássica que lista todos os processos " +
+          "ativos com detalhes como PID, usuário, uso de CPU e memória. " +
+          "Descubra quais espíritos habitam este lugar e quantos são eles.",
         hint: "ps aux",
         reward: 10,
         commands: ["ps"],
@@ -607,8 +627,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-2",
         title: "Desafio II — O Espínho do Kill",
         description:
-          "Alguns espíritos do pantâno precisam ser exorcizados! " +
-          "Use kill -l para listar todos os sinais disponíveis e entender o poder do exorcista.",
+          "Todo exorcista precisa conhecer seus instrumentos antes de agir. No Linux, processos são " +
+          "encerrados por meio de sinais — cada sinal tem um número e um nome específico. " +
+          "Existe uma opção que faz a ferramenta de encerramento de processos listar todos os sinais " +
+          "disponíveis no sistema. Estude o arsenal antes de usá-lo.",
         hint: "kill -l",
         reward: 12,
         commands: ["kill"],
@@ -619,8 +641,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-3",
         title: "Desafio III — O Oráculo do Systemctl",
         description:
-          "O systemctl é o oráculo que controla todos os daemons! " +
-          "Use systemctl status para ver o estado geral do sistema e seus serviços.",
+          "O systemd é o gerenciador de serviços do Linux moderno — ele controla tudo, desde o boot " +
+          "até os daemons em execução. Existe uma ferramenta de linha de comando que é a interface " +
+          "principal do systemd. Use-a para consultar o estado geral do sistema e obter um panorama " +
+          "de quantos serviços estão ativos, falhando ou inativos.",
         hint: "systemctl status",
         reward: 15,
         commands: ["systemctl"],
@@ -631,8 +655,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-4",
         title: "Desafio IV — Acordando o Daemon",
         description:
-          "Acorde o daemon do SSH! Use systemctl start ssh para iniciar o serviço " +
-          "e depois systemctl status ssh para verificar se ele acordou.",
+          "O daemon do SSH está adormecido nas profundezas do pântano. Serviços no Linux podem ser " +
+          "iniciados, parados, reiniciados e consultados individualmente. Sua missão é acordar o " +
+          "serviço SSH e depois verificar se ele realmente está em execução. " +
+          "Dois subcomandos distintos serão necessários: um para iniciar e outro para consultar o estado.",
         hint: "systemctl start ssh  \u2192  systemctl status ssh",
         reward: 18,
         commands: ["systemctl"],
@@ -646,8 +672,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-5",
         title: "Desafio V — O Sono do Daemon",
         description:
-          "Todo daemon precisa dormir! Use systemctl stop ssh para parar o serviço " +
-          "e systemctl disable ssh para impedi-lo de acordar sozinho na próxima inicialização.",
+          "Acordar um daemon é fácil — o verdadeiro desafio é garantir que ele durma quando não é " +
+          "necessário e não acorde sozinho na próxima vez que o sistema iniciar. " +
+          "Existem dois subcomandos distintos para isso: um que para o serviço imediatamente " +
+          "e outro que o impede de ser iniciado automaticamente no boot. " +
+          "Aplique ambos ao serviço SSH.",
         hint: "systemctl stop ssh  \u2192  systemctl disable ssh",
         reward: 18,
         commands: ["systemctl"],
@@ -661,8 +690,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-6",
         title: "Desafio VI — O Diário do Pantâno",
         description:
-          "O journalctl guarda o diário de todos os daemons! " +
-          "Use journalctl -n 20 para ver as últimas 20 entradas do log do sistema.",
+          "O systemd mantém um diário centralizado de tudo que acontece no sistema — cada " +
+          "serviço, cada erro, cada evento registrado. Existe uma ferramenta específica para " +
+          "consultar esse diário. Ela aceita uma opção numérica que limita a saída às últimas " +
+          "N entradas. Leia as últimas 20 entradas do diário do sistema.",
         hint: "journalctl -n 20",
         reward: 20,
         commands: ["journalctl"],
@@ -673,8 +704,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-7",
         title: "Desafio VII — O Relógio das Bruxas",
         description:
-          "O cron é o relógio das bruxas que agenda tarefas automáticas! " +
-          "Use crontab -l para listar as tarefas agendadas do usuário atual.",
+          "No pântano existe um relógio mágico que executa tarefas automaticamente em horários " +
+          "predefinidos — sem que ninguém precise estar presente. Cada usuário do sistema pode ter " +
+          "sua própria lista de tarefas agendadas. Existe uma ferramenta para gerenciar essas " +
+          "agendas. Use-a com a opção que lista as tarefas cadastradas para o usuário atual.",
         hint: "crontab -l",
         reward: 20,
         commands: ["crontab"],
@@ -685,9 +718,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-8",
         title: "Desafio VIII — O Peso das Sombras",
         description:
-          "Quanto espaço as sombras do pantâno ocupam? " +
-          "Use df -h para ver o uso dos discos em formato legível e " +
-          "du -sh /home para ver o tamanho do diretório home.",
+          "As sombras do pântano têm peso — e esse peso se chama uso de disco. " +
+          "Existem duas ferramentas distintas para medir isso: uma que mostra o uso de cada " +
+          "sistema de arquivos montado (partições e discos) em formato legível para humanos, " +
+          "e outra que calcula o tamanho total de um diretório específico. " +
+          "Use ambas: a primeira para ver os discos e a segunda para medir o diretório /home.",
         hint: "df -h  \u2192  du -sh /home",
         reward: 22,
         commands: ["df", "du"],
@@ -701,8 +736,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-9",
         title: "Desafio IX — A Memória do Pantâno",
         description:
-          "Quanto de memória os espíritos consomem? " +
-          "Use free -h para ver o uso de memória RAM e swap em formato legível.",
+          "Os espíritos do pântano consomem memória para existir. O sistema Linux gerencia dois " +
+          "tipos de memória: a RAM física e o swap (área de troca em disco usada quando a RAM " +
+          "esgota). Existe uma ferramenta que exibe o uso atual de ambas em uma tabela clara. " +
+          "Use-a com a opção que formata os valores em unidades legíveis (KB, MB, GB).",
         hint: "free -h",
         reward: 22,
         commands: ["free"],
@@ -713,9 +750,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "pantano-10",
         title: "Desafio X — O Ritual do Systemd",
         description:
-          "O ritual supremo: crie um arquivo de log do sistema! " +
-          "Crie o diretório 'logs' e dentro dele 'daemon.log' com o conteúdo " +
-          "'[INFO] Daemon iniciado com sucesso'. Depois use journalctl --no-pager para confirmar.",
+          "O ritual supremo do pântano exige que você deixe sua marca no sistema. Administradores " +
+          "sérios mantêm registros organizados. Sua missão é criar uma estrutura de diretório " +
+          "chamada 'logs' e dentro dela um arquivo 'daemon.log' contendo a mensagem " +
+          "'[INFO] Daemon iniciado com sucesso'. Em seguida, consulte o diário do systemd " +
+          "sem paginação para confirmar que o sistema está operacional.",
         hint: "mkdir logs && echo '[INFO] Daemon iniciado com sucesso' > logs/daemon.log  \u2192  journalctl --no-pager",
         reward: 30,
         commands: ["mkdir", "echo", "journalctl"],
@@ -742,8 +781,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-1",
         title: "Desafio I — Fundando o Reino",
         description:
-          "Todo reino precisa de uma fundação! Crie um diretório 'meu-reino', entre nele " +
-          "e inicialize um repositório Git com git init.",
+          "O Git é o sistema de controle de versão criado por Linus Torvalds. " +
+          "Todo projeto Git começa com a inicialização de um repositório local. " +
+          "Crie um diretório chamado 'meu-reino', navegue para dentro dele e use o " +
+          "subcomando do Git que transforma um diretório comum em um repositório versionado.",
         hint: "mkdir meu-reino  \u2192  cd meu-reino  \u2192  git init",
         reward: 10,
         commands: ["mkdir", "cd", "git"],
@@ -758,8 +799,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-2",
         title: "Desafio II — O Primeiro Decreto",
         description:
-          "Todo rei precisa de um decreto! Crie o arquivo 'README.md' com o conteúdo " +
-          "'# Meu Reino Linux' e use git status para ver o estado do repositório.",
+          "O Git rastreia arquivos dentro do repositório. Quando um arquivo é criado, " +
+          "ele aparece como 'untracked' (não rastreado). Existe um subcomando do Git que " +
+          "exibe o estado atual do repositório: quais arquivos foram modificados, quais " +
+          "estão na área de staging e quais ainda não são rastreados. " +
+          "Crie o arquivo 'README.md' com o conteúdo '# Meu Reino Linux' e consulte o estado.",
         hint: "echo '# Meu Reino Linux' > README.md  \u2192  git status",
         reward: 12,
         commands: ["echo", "git"],
@@ -774,8 +818,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-3",
         title: "Desafio III — Adicionando ao Cartório",
         description:
-          "O git add prepara seus arquivos para o commit! " +
-          "Use git add README.md para adicionar o arquivo à área de staging.",
+          "O fluxo de trabalho do Git tem três áreas: o diretório de trabalho, a área de " +
+          "staging (index) e o histórico de commits. Antes de registrar uma mudança, " +
+          "ela precisa ser adicionada à área de staging. Existe um subcomando do Git " +
+          "que realiza essa operação. Use-o para preparar o arquivo 'README.md' para o próximo commit.",
         hint: "git add README.md",
         reward: 12,
         commands: ["git"],
@@ -786,8 +832,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-4",
         title: "Desafio IV — O Primeiro Commit Real",
         description:
-          "Grave sua história para sempre! Use git commit -m 'Primeiro commit do reino' " +
-          "para registrar suas mudanças no histórico do repositório.",
+          "Um commit é um snapshot permanente do estado do repositório no tempo. " +
+          "Cada commit deve ter uma mensagem descritiva que explique o que foi alterado. " +
+          "O subcomando de commit possui uma flag que permite passar a mensagem diretamente " +
+          "na linha de comando. Use-o para registrar as mudanças com a mensagem " +
+          "'Primeiro commit do reino'.",
         hint: "git commit -m 'Primeiro commit do reino'",
         reward: 15,
         commands: ["git"],
@@ -798,8 +847,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-5",
         title: "Desafio V — Os Anais do Reino",
         description:
-          "Consulte os anais do reino! Use git log para ver o histórico de commits " +
-          "e git log --oneline para uma versão resumida.",
+          "O histórico de commits é a memória do projeto — cada decisão, cada mudança " +
+          "registrada ao longo do tempo. O Git possui um subcomando que exibe esse histórico " +
+          "com autor, data e mensagem. Ele também aceita uma opção que comprime cada commit " +
+          "em uma única linha para facilitar a leitura. Consulte o histórico completo e depois " +
+          "o resumido.",
         hint: "git log  \u2192  git log --oneline",
         reward: 15,
         commands: ["git"],
@@ -812,8 +864,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-6",
         title: "Desafio VI — A Muralha do Branch",
         description:
-          "Todo reino tem suas províncias! Crie uma nova branch chamada 'desenvolvimento' " +
-          "com git branch desenvolvimento e depois mude para ela com git checkout desenvolvimento.",
+          "Branches permitem desenvolver funcionalidades isoladas sem afetar o código principal. " +
+          "O Git possui um subcomando para criar branches e outro para navegar entre elas. " +
+          "Crie uma nova branch chamada 'desenvolvimento' e depois mude para ela. " +
+          "Dois subcomandos distintos serão necessários: um para criar e outro para trocar.",
         hint: "git branch desenvolvimento  \u2192  git checkout desenvolvimento",
         reward: 18,
         commands: ["git"],
@@ -827,8 +881,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-7",
         title: "Desafio VII — O Espínho do Diff",
         description:
-          "Veja as diferenças entre versões! Edite o README.md adicionando uma linha " +
-          "e use git diff para ver exatamente o que mudou.",
+          "Antes de fazer um commit, é boa prática revisar exatamente o que foi alterado. " +
+          "O Git possui um subcomando que exibe as diferenças linha a linha entre o " +
+          "diretório de trabalho e o último commit (ou a área de staging). " +
+          "Adicione uma nova linha ao README.md e depois use esse subcomando para " +
+          "visualizar as alterações pendentes.",
         hint: "echo 'Nova linha' >> README.md  \u2192  git diff",
         reward: 20,
         commands: ["echo", "git"],
@@ -839,8 +896,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-8",
         title: "Desafio VIII — A União dos Reinos",
         description:
-          "Una as províncias! Volte para a branch main com git checkout main " +
-          "e depois una a branch desenvolvimento com git merge desenvolvimento.",
+          "O merge é a operação que integra o trabalho de uma branch em outra. " +
+          "O fluxo padrão é: navegar para a branch de destino (geralmente main) e " +
+          "executar o subcomando que incorpora os commits da branch de origem. " +
+          "Volte para a branch principal e integre o trabalho da branch 'desenvolvimento'.",
         hint: "git checkout main  \u2192  git merge desenvolvimento",
         reward: 22,
         commands: ["git"],
@@ -854,8 +913,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-9",
         title: "Desafio IX — O Embaixador Clone",
         description:
-          "Simule a clonagem de um repositório remoto! " +
-          "Use git clone --help para explorar as opções do comando clone.",
+          "O Git permite trabalhar com repositórios remotos hospedados em servidores como " +
+          "GitHub, GitLab ou Bitbucket. Existe um subcomando que cria uma cópia local " +
+          "completa de um repositório remoto, incluindo todo o histórico de commits. " +
+          "Explore as opções desse subcomando para entender os parâmetros disponíveis.",
         hint: "git clone --help",
         reward: 22,
         commands: ["git"],
@@ -866,8 +927,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "reino-10",
         title: "Desafio X — O Ritual do Rei Torvalds",
         description:
-          "O ritual supremo do reino! Configure sua identidade no Git com " +
-          "git config user.name 'Seu Nome' e git config user.email 'seu@email.com'.",
+          "O ritual supremo do reino exige que você estabeleça sua identidade como " +
+          "desenvolvedor. O Git usa o nome e o e-mail do autor para assinar cada commit. " +
+          "Essas informações são configuradas através do subcomando de configuração do Git, " +
+          "usando chaves específicas para nome e e-mail do usuário. Configure ambas.",
         hint: "git config user.name 'Aventureiro'  \u2192  git config user.email 'aventureiro@kernel.org'",
         reward: 30,
         commands: ["git"],
@@ -892,8 +955,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-1",
         title: "Desafio I — A Praça das Variáveis",
         description:
-          "Na Cidade Livre, todos têm voz! Use printenv para listar todas as " +
-          "variáveis de ambiente e depois printenv HOME para ver seu diretório home.",
+          "Na Cidade Livre, cada cidadão tem direito à informação. O ambiente do shell é " +
+          "composto por dezenas de variáveis que definem o comportamento do sistema. " +
+          "Existe uma ferramenta que imprime essas variáveis — tanto todas de uma vez quanto " +
+          "uma variável específica pelo nome. Use-a para listar tudo e depois consultar " +
+          "especificamente a variável que guarda o caminho do seu diretório pessoal.",
         hint: "printenv  \u2192  printenv HOME",
         reward: 10,
         commands: ["printenv"],
@@ -906,8 +972,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-2",
         title: "Desafio II — O Manifesto do Echo",
         description:
-          "Proclame o manifesto da liberdade! Crie 'manifesto.txt' com o texto " +
-          "'Software Livre para Todos' e exiba seu conteúdo com cat.",
+          "Todo movimento precisa de um manifesto. Crie um arquivo chamado 'manifesto.txt' " +
+          "contendo o texto 'Software Livre para Todos'. Use o redirecionamento de saída para " +
+          "gravar o texto no arquivo e depois exiba o conteúdo do arquivo no terminal para " +
+          "confirmar que foi gravado corretamente.",
         hint: "echo 'Software Livre para Todos' > manifesto.txt  \u2192  cat manifesto.txt",
         reward: 10,
         commands: ["echo", "cat"],
@@ -921,9 +989,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-3",
         title: "Desafio III — A Proclamação do Export",
         description:
-          "Exporte a liberdade para todo o sistema! " +
-          "Use export GNU_FREEDOM='true' para criar uma variável de ambiente " +
-          "e echo $GNU_FREEDOM para confirmar.",
+          "Variáveis locais do shell não são visíveis para processos filhos. Para que uma " +
+          "variável seja herdada por subprocessos, ela precisa ser exportada para o ambiente. " +
+          "Exporte uma variável chamada GNU_FREEDOM com o valor 'true' e depois confirme " +
+          "sua existência exibindo seu valor no terminal.",
         hint: "export GNU_FREEDOM='true'  \u2192  echo $GNU_FREEDOM",
         reward: 12,
         commands: ["export", "echo"],
@@ -937,8 +1006,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-4",
         title: "Desafio IV — O Caminho da Liberdade",
         description:
-          "O PATH é o caminho que o shell usa para encontrar comandos! " +
-          "Use echo $PATH para ver todos os diretórios no caminho de busca.",
+          "Quando você digita um comando, o shell não sabe magicamente onde ele está — ele " +
+          "percorre uma lista de diretórios em busca do executável. Essa lista é armazenada em " +
+          "uma variável de ambiente especial. Exiba o valor dessa variável para ver todos os " +
+          "diretórios que o shell consulta ao executar um comando.",
         hint: "echo $PATH",
         reward: 12,
         commands: ["echo"],
@@ -949,8 +1020,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-5",
         title: "Desafio V — A Constituição do Bashrc",
         description:
-          "O .bashrc é a constituição do seu shell! " +
-          "Use cat ~/.bashrc para ler o arquivo de configuração do bash.",
+          "O bash possui um arquivo de configuração que é executado automaticamente toda vez " +
+          "que uma nova sessão interativa é iniciada. Nele ficam aliases, variáveis e funções " +
+          "personalizadas. Esse arquivo fica oculto no diretório home do usuário (começa com ponto). " +
+          "Leia seu conteúdo para entender como seu ambiente está configurado.",
         hint: "cat ~/.bashrc",
         reward: 15,
         commands: ["cat"],
@@ -961,8 +1034,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-6",
         title: "Desafio VI — Adicionando à Constituição",
         description:
-          "Adicione um alias permanente ao .bashrc! " +
-          "Use echo \"alias ll='ls -la'\" >> ~/.bashrc para adicionar o alias ao arquivo.",
+          "Aliases criados diretamente no terminal são perdidos quando a sessão termina. " +
+          "Para torná-los permanentes, eles devem ser adicionados ao arquivo de configuração do bash. " +
+          "Use o operador de redirecionamento que acrescenta conteúdo ao final de um arquivo " +
+          "(sem sobrescrever) para adicionar a definição do alias ll='ls -la' ao .bashrc.",
         hint: "echo \"alias ll='ls -la'\" >> ~/.bashrc",
         reward: 18,
         commands: ["echo"],
@@ -977,8 +1052,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-7",
         title: "Desafio VII — A Fonte da Liberdade",
         description:
-          "Aplique as mudanças do .bashrc sem reiniciar o terminal! " +
-          "Use source ~/.bashrc para recarregar as configurações.",
+          "Modificar o .bashrc não tem efeito imediato — as mudanças só são aplicadas em uma " +
+          "nova sessão. Porém, existe um comando que força o shell atual a executar um arquivo " +
+          "de configuração imediatamente, sem precisar fechar e reabrir o terminal. " +
+          "Use-o para aplicar as alterações feitas no .bashrc agora mesmo.",
         hint: "source ~/.bashrc",
         reward: 18,
         commands: ["source"],
@@ -989,8 +1066,9 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-8",
         title: "Desafio VIII — O Exílio do Unset",
         description:
-          "Bana uma variável do reino! " +
-          "Use unset GNU_FREEDOM para remover a variável de ambiente criada anteriormente.",
+          "Assim como variáveis podem ser criadas e exportadas, elas também podem ser removidas " +
+          "do ambiente. Existe um comando que apaga completamente uma variável da memória da " +
+          "sessão atual. Use-o para remover a variável GNU_FREEDOM que foi criada anteriormente.",
         hint: "unset GNU_FREEDOM",
         reward: 20,
         commands: ["unset"],
@@ -1001,8 +1079,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-9",
         title: "Desafio IX — O Escriba do Here-Doc",
         description:
-          "Crie um arquivo multi-linha usando here-doc! " +
-          "Use cat > licenca.txt << EOF para criar 'licenca.txt' com o conteúdo 'GNU GPL v3'.",
+          "Criar arquivos com múltiplas linhas diretamente no terminal exige técnicas especiais. " +
+          "Uma delas é o here-doc, que permite inserir um bloco de texto até encontrar um " +
+          "delimitador. Outra é usar printf com \\n para quebras de linha. " +
+          "Crie um arquivo chamado 'licenca.txt' contendo ao menos duas linhas: " +
+          "'GNU GPL v3' e 'Software Livre', usando qualquer uma dessas técnicas.",
         hint: "printf 'GNU GPL v3\nSoftware Livre' > licenca.txt",
         reward: 22,
         commands: ["cat", "echo"],
@@ -1015,9 +1096,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "gnu-10",
         title: "Desafio X — O Grande Ritual GNU",
         description:
-          "O ritual supremo da Cidade Livre! Crie um script 'gnu-setup.sh' que exporte " +
-          "a variável DISTRO='GNU/Linux' e exiba 'Liberdade Configurada!'. " +
-          "Use echo para criar o script e chmod +x para torná-lo executável.",
+          "O ritual supremo da Cidade Livre requer que você crie um script de configuração " +
+          "completo. Crie um arquivo chamado 'gnu-setup.sh' que contenha a exportação da " +
+          "variável DISTRO com o valor 'GNU/Linux'. Depois, torne esse script executável " +
+          "alterando suas permissões. Um script de setup é uma prática comum de administradores " +
+          "para automatizar a configuração de novos ambientes.",
         hint: "echo 'export DISTRO=GNU/Linux' > gnu-setup.sh  \u2192  chmod +x gnu-setup.sh",
         reward: 30,
         commands: ["echo", "chmod"],
@@ -1043,8 +1126,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-1",
         title: "Desafio I — Os Campos do RPM",
         description:
-          "Nas planícies, o RPM é a ferramenta do lavrador! " +
-          "Use rpm --version para ver a versão do RPM e rpm --help para explorar suas opções.",
+          "Nas planícies de RedHat, o RPM (Red Hat Package Manager) é a ferramenta fundamental " +
+          "de gerenciamento de pacotes. Antes de usar qualquer ferramenta, um bom administrador " +
+          "verifica sua versão e explora suas capacidades. Descubra qual versão do RPM está " +
+          "instalada e explore as opções disponíveis através do sistema de ajuda integrado.",
         hint: "rpm --version  \u2192  rpm --help",
         reward: 10,
         commands: ["rpm"],
@@ -1055,8 +1140,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-2",
         title: "Desafio II — O Inventário da Colheita",
         description:
-          "Liste todos os pacotes RPM instalados! " +
-          "Use rpm -qa para ver todos os pacotes e rpm -qa | grep bash para filtrar o bash.",
+          "Um administrador de sistemas precisa saber exatamente quais pacotes estão instalados. " +
+          "O RPM possui uma opção que lista todos os pacotes instalados no sistema. " +
+          "Use essa opção para obter o inventário completo e depois combine com uma ferramenta " +
+          "de filtragem para encontrar especificamente o pacote 'bash' nessa lista.",
         hint: "rpm -qa  \u2192  rpm -qa | grep bash",
         reward: 12,
         commands: ["rpm", "grep"],
@@ -1069,8 +1156,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-3",
         title: "Desafio III — O Pergaminho do Pacote",
         description:
-          "Inspecione um pacote instalado! " +
-          "Use rpm -qi bash para ver informações detalhadas sobre o pacote bash.",
+          "Cada pacote instalado carrega um pergaminho com informações detalhadas: versão, " +
+          "descrição, data de instalação, mantenedor e muito mais. O RPM possui uma combinação " +
+          "de flags que exibe essas informações completas sobre um pacote instalado. " +
+          "Use-a para inspecionar o pacote 'bash'.",
         hint: "rpm -qi bash",
         reward: 12,
         commands: ["rpm"],
@@ -1081,8 +1170,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-4",
         title: "Desafio IV — O Mercador YUM",
         description:
-          "O YUM é o mercador das planícies! " +
-          "Use yum --version para ver a versão e yum list installed para listar pacotes instalados.",
+          "O YUM (Yellowdog Updater Modified) é o gerenciador de pacotes de alto nível do " +
+          "ecossistema Red Hat, capaz de resolver dependências automaticamente. " +
+          "Verifique qual versão do YUM está disponível no sistema e depois use-o para " +
+          "listar todos os pacotes atualmente instalados.",
         hint: "yum --version  \u2192  yum list installed",
         reward: 15,
         commands: ["yum"],
@@ -1093,8 +1184,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-5",
         title: "Desafio V — A Busca do YUM",
         description:
-          "Procure por pacotes no repositório! " +
-          "Use yum search httpd para encontrar o servidor web Apache.",
+          "Antes de instalar um pacote, é boa prática verificar se ele existe nos repositórios " +
+          "e quais versões estão disponíveis. O YUM possui um subcomando de busca que pesquisa " +
+          "por nome e descrição nos repositórios configurados. " +
+          "Use-o para encontrar o servidor web Apache (httpd).",
         hint: "yum search httpd",
         reward: 15,
         commands: ["yum"],
@@ -1105,8 +1198,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-6",
         title: "Desafio VI — O Novo Mercador DNF",
         description:
-          "O DNF é o sucessor moderno do YUM! " +
-          "Use dnf --version para ver a versão e dnf repolist para listar os repositórios ativos.",
+          "O DNF (Dandified YUM) é o sucessor moderno do YUM, com melhor resolução de " +
+          "dependências e desempenho superior. Verifique qual versão do DNF está instalada " +
+          "e depois liste todos os repositórios de pacotes atualmente configurados e ativos " +
+          "no sistema.",
         hint: "dnf --version  \u2192  dnf repolist",
         reward: 18,
         commands: ["dnf"],
@@ -1117,8 +1212,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-7",
         title: "Desafio VII — A Busca do DNF",
         description:
-          "Pesquise pacotes com o DNF! " +
-          "Use dnf search vim para encontrar o editor Vim e dnf info vim para ver seus detalhes.",
+          "O DNF oferece dois níveis de consulta sobre pacotes: um que faz uma busca ampla por " +
+          "nome e descrição nos repositórios, e outro que exibe informações detalhadas de um " +
+          "pacote específico (versão, tamanho, dependências, descrição completa). " +
+          "Use ambos para investigar o editor Vim.",
         hint: "dnf search vim  \u2192  dnf info vim",
         reward: 20,
         commands: ["dnf"],
@@ -1132,8 +1229,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-8",
         title: "Desafio VIII — O Celeiro dos Grupos",
         description:
-          "O DNF gerencia grupos de pacotes! " +
-          "Use dnf grouplist para ver os grupos disponíveis e dnf groupinfo 'Development Tools' para detalhes.",
+          "Além de pacotes individuais, o DNF gerencia grupos temáticos que instalam conjuntos " +
+          "completos de ferramentas de uma vez. Existe um subcomando que lista todos os grupos " +
+          "disponíveis e outro que exibe os detalhes de um grupo específico. " +
+          "Liste os grupos e depois investigue o grupo 'Development Tools' para ver quais " +
+          "ferramentas de desenvolvimento ele inclui.",
         hint: "dnf grouplist  \u2192  dnf groupinfo 'Development Tools'",
         reward: 22,
         commands: ["dnf"],
@@ -1144,8 +1244,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-9",
         title: "Desafio IX — O Registro da Colheita",
         description:
-          "Crie um registro da sua colheita! " +
-          "Crie o diretório 'pacotes' e dentro dele 'rpm-list.txt' com o conteúdo 'bash vim curl wget'.",
+          "Um bom administrador documenta o que tem instalado. Crie uma estrutura de diretório " +
+          "chamada 'pacotes' e dentro dela um arquivo 'rpm-list.txt' contendo uma lista de " +
+          "pacotes essenciais: 'bash vim curl wget'. Essa é uma prática comum para registrar " +
+          "dependências de projetos ou ambientes de produção.",
         hint: "mkdir pacotes && echo 'bash vim curl wget' > pacotes/rpm-list.txt",
         reward: 22,
         commands: ["mkdir", "echo"],
@@ -1159,9 +1261,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "redhat-10",
         title: "Desafio X — O Grande Ritual RedHat",
         description:
-          "O ritual supremo das planícies! " +
-          "Use dnf check-update para verificar atualizações disponíveis e " +
-          "dnf history para ver o histórico de instalações.",
+          "O ritual supremo das planícies envolve duas operações essenciais de manutenção. " +
+          "A primeira verifica se há pacotes instalados com atualizações disponíveis nos " +
+          "repositórios. A segunda exibe o histórico completo de operações realizadas pelo " +
+          "gerenciador de pacotes (instalações, remoções, atualizações). " +
+          "Execute ambas as consultas usando o DNF.",
         hint: "dnf check-update  \u2192  dnf history",
         reward: 30,
         commands: ["dnf"],
@@ -1187,8 +1291,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-1",
         title: "Desafio I — O Oásis do APT-Cache",
         description:
-          "No deserto, o apt-cache é o oásis do conhecimento! " +
-          "Use apt-cache stats para ver estatísticas do cache de pacotes.",
+          "No Deserto de Debian, o cache local de pacotes é o oásis do conhecimento. " +
+          "O APT mantém um cache com metadados de todos os pacotes disponíveis nos repositórios. " +
+          "Existe uma ferramenta de consulta a esse cache que possui um subcomando capaz de " +
+          "exibir estatísticas gerais: total de pacotes, tamanho do cache e outras métricas. " +
+          "Use-a para obter uma visão geral do estado do cache.",
         hint: "apt-cache stats",
         reward: 10,
         commands: ["apt-cache"],
@@ -1199,8 +1306,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-2",
         title: "Desafio II — As Areias do dpkg-query",
         description:
-          "O dpkg-query vasculha as areias do deserto! " +
-          "Use dpkg-query -l para listar todos os pacotes e dpkg-query -l | grep bash para filtrar.",
+          "O dpkg-query é uma ferramenta avançada para consultar o banco de dados de pacotes " +
+          "instalados pelo dpkg. Ela possui uma opção que lista todos os pacotes com seu status " +
+          "de instalação. Use essa opção para listar todos os pacotes e depois combine com " +
+          "uma ferramenta de filtragem para isolar apenas o pacote 'bash'.",
         hint: "dpkg-query -l  \u2192  dpkg-query -l | grep bash",
         reward: 12,
         commands: ["dpkg-query", "grep"],
@@ -1211,8 +1320,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-3",
         title: "Desafio III — O Mapa dos Arquivos",
         description:
-          "Descubra quais arquivos um pacote instalou! " +
-          "Use dpkg -L bash para listar todos os arquivos do pacote bash.",
+          "Quando um pacote é instalado, ele espalha arquivos por vários diretórios do sistema. " +
+          "O dpkg mantém um registro preciso de cada arquivo pertencente a cada pacote. " +
+          "Existe uma opção do dpkg que lista todos os arquivos instalados por um pacote específico. " +
+          "Use-a para mapear todos os arquivos que pertencem ao pacote 'bash'.",
         hint: "dpkg -L bash",
         reward: 12,
         commands: ["dpkg"],
@@ -1223,8 +1334,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-4",
         title: "Desafio IV — O Pergaminho das Seleções",
         description:
-          "Veja o estado de todos os pacotes! " +
-          "Use dpkg --get-selections para listar todos os pacotes e seus estados (install/deinstall).",
+          "O dpkg mantém um registro do estado de seleção de cada pacote: se está instalado, " +
+          "marcado para remoção ou em outro estado. Existe uma opção do dpkg que exporta esse " +
+          "registro completo, mostrando todos os pacotes e seus estados atuais. " +
+          "Esse recurso é muito útil para replicar uma instalação em outra máquina.",
         hint: "dpkg --get-selections",
         reward: 15,
         commands: ["dpkg"],
@@ -1235,9 +1348,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-5",
         title: "Desafio V — A Fonte do Sources.list",
         description:
-          "O sources.list é a fonte de água do deserto! " +
-          "Crie 'sources.list' com o conteúdo 'deb http://deb.debian.org/debian stable main' " +
-          "e exiba com cat.",
+          "O APT sabe onde buscar pacotes por meio de um arquivo de configuração que lista os " +
+          "repositórios oficiais. Cada linha nesse arquivo segue o formato: tipo, URL, distribuição " +
+          "e componente. Crie um arquivo chamado 'sources.list' contendo uma entrada para o " +
+          "repositório oficial Debian stable: 'deb http://deb.debian.org/debian stable main'. " +
+          "Depois exiba seu conteúdo para confirmar.",
         hint: "echo 'deb http://deb.debian.org/debian stable main' > sources.list  \u2192  cat sources.list",
         reward: 15,
         commands: ["echo", "cat"],
@@ -1251,9 +1366,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-6",
         title: "Desafio VI — A Busca no Cache",
         description:
-          "Procure pacotes no cache local! " +
-          "Use apt-cache search vim para encontrar pacotes relacionados ao Vim " +
-          "e apt-cache show vim para ver detalhes.",
+          "O apt-cache permite consultar o banco de dados local de pacotes sem precisar " +
+          "acessar a internet. Ele tem dois subcomandos complementares: um que faz busca por " +
+          "texto no nome e descrição dos pacotes, e outro que exibe informações detalhadas " +
+          "de um pacote específico. Use ambos para investigar o editor Vim.",
         hint: "apt-cache search vim  \u2192  apt-cache show vim",
         reward: 18,
         commands: ["apt-cache"],
@@ -1267,8 +1383,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-7",
         title: "Desafio VII — As Dependências do Deserto",
         description:
-          "Todo pacote tem dependências, como oásis no deserto! " +
-          "Use apt-cache depends curl para ver as dependências do pacote curl.",
+          "Pacotes raramente existem sozinhos — eles dependem de outros para funcionar. " +
+          "Entender a árvore de dependências é essencial para diagnosticar problemas de " +
+          "instalação. O apt-cache possui um subcomando que exibe todas as dependências " +
+          "declaradas por um pacote. Use-o para mapear as dependências do pacote 'curl'.",
         hint: "apt-cache depends curl",
         reward: 20,
         commands: ["apt-cache"],
@@ -1279,9 +1397,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-8",
         title: "Desafio VIII — O Marcador apt-mark",
         description:
-          "O apt-mark controla o status dos pacotes! " +
-          "Use apt-mark showmanual para ver pacotes instalados manualmente " +
-          "e apt-mark showauto para ver os instalados automaticamente.",
+          "O APT distingue entre pacotes instalados manualmente pelo usuário e pacotes " +
+          "instalados automaticamente como dependência de outros. Essa distinção é importante " +
+          "para a limpeza automática do sistema. Existe uma ferramenta que gerencia esses " +
+          "marcadores e possui subcomandos para listar cada categoria separadamente. " +
+          "Liste tanto os pacotes instalados manualmente quanto os automáticos.",
         hint: "apt-mark showmanual  \u2192  apt-mark showauto",
         reward: 22,
         commands: ["apt-mark"],
@@ -1292,8 +1412,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-9",
         title: "Desafio IX — O Apt-Get Clássico",
         description:
-          "O apt-get é o clássico do deserto! " +
-          "Use apt-get --simulate install vim para simular a instalação do Vim sem instalar de verdade.",
+          "O apt-get é a ferramenta clássica de instalação de pacotes Debian. Antes de " +
+          "instalar algo em produção, é possível simular a operação para ver o que seria " +
+          "feito sem realmente modificar o sistema. Existe uma opção do apt-get que ativa " +
+          "esse modo de simulação. Use-a para simular a instalação do pacote 'vim'.",
         hint: "apt-get --simulate install vim",
         reward: 25,
         commands: ["apt-get"],
@@ -1304,9 +1426,11 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "debian-10",
         title: "Desafio X — O Grande Ritual Debian",
         description:
-          "O ritual supremo do deserto! " +
-          "Use apt-get clean para limpar o cache de pacotes baixados " +
-          "e apt-get autoremove para remover dependências desnecessárias.",
+          "O ritual supremo do deserto envolve a manutenção preventiva do sistema. " +
+          "Com o tempo, o cache de pacotes baixados ocupa espaço desnecessário em disco, " +
+          "e dependências órfãs (instaladas automaticamente mas não mais necessárias) " +
+          "também se acumulam. Existem dois subcomandos do apt-get para resolver cada um " +
+          "desses problemas. Execute ambos para deixar o sistema limpo.",
         hint: "apt-get clean  \u2192  apt-get autoremove",
         reward: 30,
         commands: ["apt-get"],
@@ -1331,8 +1455,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-1",
         title: "Desafio I — O Farol do Snap",
         description:
-          "O snap é o farol das ilhas! " +
-          "Use snap --version para ver a versão e snap list para ver os snaps instalados.",
+          "O Snap é o sistema de empacotamento moderno da Canonical, projetado para distribuir " +
+          "aplicativos de forma isolada e segura em qualquer distribuição Linux. " +
+          "Verifique qual versão do Snap está instalada no sistema e depois liste todos os " +
+          "pacotes Snap atualmente instalados.",
         hint: "snap --version  \u2192  snap list",
         reward: 10,
         commands: ["snap"],
@@ -1343,8 +1469,9 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-2",
         title: "Desafio II — A Busca nas Ilhas",
         description:
-          "Explore a loja de snaps! " +
-          "Use snap find vlc para procurar o player VLC na loja de snaps.",
+          "O Snap possui uma loja online com milhares de aplicativos prontos para instalar. " +
+          "Existe um subcomando que pesquisa pacotes na Snap Store por nome ou descrição. " +
+          "Use-o para procurar o player multimídia VLC na loja e ver as opções disponíveis.",
         hint: "snap find vlc",
         reward: 12,
         commands: ["snap"],
@@ -1355,8 +1482,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-3",
         title: "Desafio III — A Identidade da Ilha",
         description:
-          "Descubra a identidade do sistema! " +
-          "Use lsb_release -a para ver todas as informações da distribuição Ubuntu.",
+          "Cada distribuição Linux tem uma identidade própria: nome, versão, codinome e " +
+          "número de release. Existe uma ferramenta específica para exibir essas informações " +
+          "sobre a distribuição instalada. Ela aceita uma opção que exibe todos os campos " +
+          "disponíveis de uma vez. Use-a para revelar a identidade completa do sistema.",
         hint: "lsb_release -a",
         reward: 12,
         commands: ["lsb_release"],
@@ -1367,8 +1496,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-4",
         title: "Desafio IV — O Muro do Firewall",
         description:
-          "Proteja as ilhas com o firewall! " +
-          "Use ufw status para ver o estado do firewall e ufw --help para explorar as opções.",
+          "O UFW (Uncomplicated Firewall) é a interface simplificada do Ubuntu para gerenciar " +
+          "regras de firewall. Antes de configurar regras, é essencial verificar o estado atual " +
+          "do firewall (ativo ou inativo) e quais regras já estão em vigor. " +
+          "Consulte o estado atual do firewall e explore as opções disponíveis.",
         hint: "ufw status  \u2192  ufw --help",
         reward: 15,
         commands: ["ufw"],
@@ -1379,8 +1510,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-5",
         title: "Desafio V — A Chave do Arquipélago",
         description:
-          "Gere uma chave SSH para navegar entre as ilhas! " +
-          "Use ssh-keygen --help para explorar as opções de geração de chaves.",
+          "A autenticação SSH por chave criptográfica é mais segura do que por senha. " +
+          "O processo envolve gerar um par de chaves: uma pública (compartilhada com servidores) " +
+          "e uma privada (mantida em sigilo). Existe uma ferramenta específica para gerar esses " +
+          "pares de chaves. Explore suas opções para entender os algoritmos e parâmetros disponíveis.",
         hint: "ssh-keygen --help",
         reward: 18,
         commands: ["ssh-keygen"],
@@ -1391,8 +1524,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-6",
         title: "Desafio VI — O Mensageiro SCP",
         description:
-          "O SCP transporta arquivos entre ilhas! " +
-          "Crie 'mensagem.txt' com o conteúdo 'Mensagem das Ilhas' e use scp --help para explorar.",
+          "O SCP (Secure Copy Protocol) permite transferir arquivos entre máquinas de forma " +
+          "criptografada, usando o protocolo SSH como base. Crie um arquivo chamado 'mensagem.txt' " +
+          "com o conteúdo 'Mensagem das Ilhas' e depois explore as opções do SCP para entender " +
+          "como ele seria usado para enviar esse arquivo a um servidor remoto.",
         hint: "echo 'Mensagem das Ilhas' > mensagem.txt  \u2192  scp --help",
         reward: 18,
         commands: ["echo", "scp"],
@@ -1407,8 +1542,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-7",
         title: "Desafio VII — O Sincronizador Rsync",
         description:
-          "O rsync sincroniza arquivos entre ilhas! " +
-          "Use rsync --version para ver a versão e rsync --help para explorar as opções.",
+          "O rsync é uma ferramenta de sincronização de arquivos que transfere apenas as " +
+          "diferenças entre origem e destino, tornando-o muito eficiente para backups e " +
+          "replicação de dados. Verifique qual versão está instalada e explore suas opções " +
+          "para entender os modos de transferência e as flags de sincronização disponíveis.",
         hint: "rsync --version  \u2192  rsync --help",
         reward: 20,
         commands: ["rsync"],
@@ -1419,8 +1556,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-8",
         title: "Desafio VIII — O Mapa da Rede",
         description:
-          "Mapeie a rede das ilhas! " +
-          "Use ip route para ver as rotas de rede e ip link para ver as interfaces.",
+          "O comando 'ip' é a ferramenta moderna de diagnóstico e configuração de rede no Linux. " +
+          "Ele possui subcomandos para diferentes aspectos da rede. Um deles exibe a tabela de " +
+          "roteamento (como os pacotes chegam ao destino). Outro exibe as interfaces de rede " +
+          "e seus estados. Use ambos os subcomandos para mapear a configuração de rede do sistema.",
         hint: "ip route  \u2192  ip link",
         reward: 22,
         commands: ["ip"],
@@ -1434,8 +1573,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-9",
         title: "Desafio IX — O Arquivo do Snap",
         description:
-          "Instale um snap clássico! " +
-          "Use snap info hello-world para ver informações sobre o snap hello-world.",
+          "Antes de instalar um snap, é possível consultar informações detalhadas sobre ele: " +
+          "versões disponíveis, canais de atualização (stable, candidate, beta, edge), " +
+          "tamanho e descrição. Existe um subcomando do snap que exibe essas informações. " +
+          "Use-o para investigar o snap 'hello-world'.",
         hint: "snap info hello-world",
         reward: 22,
         commands: ["snap"],
@@ -1446,8 +1587,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "canonical-10",
         title: "Desafio X — O Grande Ritual Ubuntu",
         description:
-          "O ritual supremo das ilhas! Crie um arquivo 'ubuntu-manifesto.txt' com o conteúdo " +
-          "'Ubuntu: Linux para Humanos' e use uname -a para confirmar o kernel do sistema.",
+          "O ritual supremo das ilhas combina documentação e diagnóstico. Crie um arquivo " +
+          "chamado 'ubuntu-manifesto.txt' com o texto 'Ubuntu: Linux para Humanos'. " +
+          "Em seguida, use a ferramenta que exibe informações completas do kernel — nome, " +
+          "versão, arquitetura e sistema operacional — com a opção que mostra todos os campos.",
         hint: "echo 'Ubuntu: Linux para Humanos' > ubuntu-manifesto.txt  \u2192  uname -a",
         reward: 30,
         commands: ["echo", "uname"],
@@ -1473,8 +1616,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-1",
         title: "Desafio I — A Filosofia KISS",
         description:
-          "No Vale do Arch, tudo é simples e direto! " +
-          "Use pacman --version para ver a versão e pacman --help para explorar as opções.",
+          "O Vale do Arch Linux segue a filosofia KISS: Keep It Simple, Stupid. " +
+          "O Pacman é o gerenciador de pacotes central, com uma sintaxe de operações " +
+          "baseada em letras maiúsculas (-S, -R, -Q). Antes de qualquer coisa, " +
+          "verifique qual versão está instalada e explore as operações disponíveis.",
         hint: "pacman --version  \u2192  pacman --help",
         reward: 10,
         commands: ["pacman"],
@@ -1485,8 +1630,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-2",
         title: "Desafio II — O Inventário do Vale",
         description:
-          "Liste todos os pacotes instalados no Arch! " +
-          "Use pacman -Q para listar todos os pacotes e pacman -Q | wc -l para contar.",
+          "O Pacman organiza suas operações em grupos: -S para sincronizar (instalar), " +
+          "-R para remover e -Q para consultar (query) o banco de dados local. " +
+          "Use a operação de consulta para listar todos os pacotes instalados " +
+          "e depois combine com uma ferramenta de contagem para saber o total exato.",
         hint: "pacman -Q  \u2192  pacman -Q | wc -l",
         reward: 12,
         commands: ["pacman"],
@@ -1497,8 +1644,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-3",
         title: "Desafio III — A Busca no Vale",
         description:
-          "Procure pacotes no repositório Arch! " +
-          "Use pacman -Ss vim para buscar o editor Vim nos repositórios.",
+          "A operação de sincronização do Pacman não serve apenas para instalar — ela " +
+          "também possui uma flag de busca que pesquisa por nome e descrição nos " +
+          "repositórios sincronizados localmente. Use essa combinação para encontrar " +
+          "pacotes relacionados ao editor Vim.",
         hint: "pacman -Ss vim",
         reward: 12,
         commands: ["pacman"],
@@ -1509,8 +1658,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-4",
         title: "Desafio IV — O Pergaminho do Pacote",
         description:
-          "Inspecione um pacote! " +
-          "Use pacman -Qi bash para ver informações detalhadas do pacote bash instalado.",
+          "A operação de consulta do Pacman pode ser combinada com flags para obter " +
+          "diferentes níveis de detalhe sobre pacotes instalados. Uma dessas combinações " +
+          "exibe informações completas: versão, descrição, dependências e data de instalação. " +
+          "Use-a para inspecionar o pacote 'bash'.",
         hint: "pacman -Qi bash",
         reward: 15,
         commands: ["pacman"],
@@ -1521,8 +1672,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-5",
         title: "Desafio V — Os Arquivos do Pacote",
         description:
-          "Descubra quais arquivos um pacote instalou! " +
-          "Use pacman -Ql bash para listar todos os arquivos do pacote bash.",
+          "O Pacman rastreia com precisão quais arquivos pertencem a cada pacote instalado. " +
+          "A operação de consulta possui uma flag que lista todos os arquivos de um pacote " +
+          "com seus caminhos absolutos no sistema de arquivos. " +
+          "Use essa combinação para mapear os arquivos pertencentes ao pacote 'bash'.",
         hint: "pacman -Ql bash",
         reward: 15,
         commands: ["pacman"],
@@ -1533,8 +1686,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-6",
         title: "Desafio VI — O Orfanato do Vale",
         description:
-          "Encontre pacotes órfãos (sem dependências)! " +
-          "Use pacman -Qdt para listar pacotes instalados como dependência que já não são necessários.",
+          "Com o tempo, pacotes instalados como dependência de outros ficam órfãos quando " +
+          "o pacote que os exigia é removido. Eles ocupam espaço sem servir a nenhum propósito. " +
+          "O Pacman possui uma combinação de flags na operação de consulta que lista " +
+          "exatamente esses pacotes órfãos. Use-a para identificar dependências não mais necessárias.",
         hint: "pacman -Qdt",
         reward: 18,
         commands: ["pacman"],
@@ -1545,9 +1700,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-7",
         title: "Desafio VII — O PKGBUILD Sagrado",
         description:
-          "O PKGBUILD é o texto sagrado do Arch! " +
-          "Crie um arquivo 'PKGBUILD' com o conteúdo 'pkgname=meu-pacote\npkgver=1.0' " +
-          "e exiba com cat.",
+          "O PKGBUILD é o arquivo de receita do Arch Linux: um script shell que descreve " +
+          "como um pacote deve ser compilado e instalado. Ele contém campos obrigatórios " +
+          "como o nome do pacote e a versão. Crie um arquivo chamado 'PKGBUILD' contendo " +
+          "ao menos esses dois campos e exiba seu conteúdo para confirmar.",
         hint: "printf 'pkgname=meu-pacote\npkgver=1.0' > PKGBUILD  \u2192  cat PKGBUILD",
         reward: 20,
         commands: ["echo", "cat"],
@@ -1560,8 +1716,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-8",
         title: "Desafio VIII — O Espelho do Reflector",
         description:
-          "O reflector encontra os espelhos mais rápidos! " +
-          "Use reflector --help para explorar as opções de otimização de mirrors.",
+          "A velocidade de download de pacotes depende de qual servidor espelho (mirror) " +
+          "está sendo usado. O Arch Linux possui uma ferramenta que avalia e ordena os " +
+          "espelhos disponíveis por velocidade e atualidade, gerando uma lista otimizada. " +
+          "Explore as opções dessa ferramenta para entender como ela classifica os mirrors.",
         hint: "reflector --help",
         reward: 22,
         commands: ["reflector"],
@@ -1572,8 +1730,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-9",
         title: "Desafio IX — O AUR Lendário",
         description:
-          "O AUR é o repositório lendário da comunidade Arch! " +
-          "Use yay --version para ver a versão do helper AUR e yay --help para explorar.",
+          "O AUR (Arch User Repository) é um repositório mantido pela comunidade com " +
+          "milhares de pacotes não oficiais. Para acessá-lo, são usados helpers que " +
+          "automatizam o processo de baixar, compilar e instalar PKGBUILDs. " +
+          "Um dos helpers mais populares é o yay. Verifique sua versão e explore suas opções.",
         hint: "yay --version  \u2192  yay --help",
         reward: 25,
         commands: ["yay"],
@@ -1584,9 +1744,10 @@ export const LEVEL_TASKS: LevelTask[] = [
         id: "arch-10",
         title: "Desafio X — O Grande Ritual Arch",
         description:
-          "O ritual supremo do Vale! Remova qualquer arquivo 'ubuntu-manifesto.txt' se existir, " +
-          "crie o diretório 'arch-configs' com o arquivo 'pacman.conf' contendo " +
-          "'[options]\nHoldPkg = pacman glibc' e exiba com cat.",
+          "O ritual supremo do Vale exige que você crie uma estrutura de configuração " +
+          "do Pacman. Crie um diretório chamado 'arch-configs' e dentro dele um arquivo " +
+          "'pacman.conf' contendo a seção '[options]' com a diretiva HoldPkg listando " +
+          "os pacotes protegidos. Depois exiba o conteúdo para confirmar a estrutura.",
         hint: "mkdir arch-configs && echo '[options]' > arch-configs/pacman.conf  \u2192  cat arch-configs/pacman.conf",
         reward: 30,
         commands: ["mkdir", "echo", "cat"],
