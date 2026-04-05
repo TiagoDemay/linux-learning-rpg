@@ -70,6 +70,7 @@ export default function Home() {
   const [sparkleActive, setSparkleActive] = useState(false);
   const [sparkleMessage, setSparkleMessage] = useState("");
   const [coinAnimation, setCoinAnimation] = useState<number | null>(null);
+  const [territoryBonus, setTerritoryBonus] = useState<string | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
 
   const { user, isAuthenticated } = useAuth();
@@ -172,17 +173,28 @@ export default function Home() {
     setTimeout(() => setView("terminal"), 1500);
   }, [pendingUnlock]);
 
+  const TERRITORY_COMPLETION_BONUS = 80;
+
   const handleChallengeComplete = useCallback(
     (levelId: string, challengeIndex: number, reward: number, isLastChallenge: boolean) => {
+      const isNewCompletion = isLastChallenge;
       setGameState((prev) => {
+        const alreadyCompleted = prev.completedLevels.includes(levelId);
         const newProgress = { ...prev.challengeProgress, [levelId]: challengeIndex + 1 };
         const newCompletedLevels =
-          isLastChallenge && !prev.completedLevels.includes(levelId)
+          isLastChallenge && !alreadyCompleted
             ? [...prev.completedLevels, levelId]
             : prev.completedLevels;
-        return { ...prev, coins: prev.coins + reward, challengeProgress: newProgress, completedLevels: newCompletedLevels };
+        const bonus = isLastChallenge && !alreadyCompleted ? TERRITORY_COMPLETION_BONUS : 0;
+        return { ...prev, coins: prev.coins + reward + bonus, challengeProgress: newProgress, completedLevels: newCompletedLevels };
       });
-      setCoinAnimation(reward);
+      if (isNewCompletion) {
+        setCoinAnimation(reward + TERRITORY_COMPLETION_BONUS);
+        setTerritoryBonus(`+${TERRITORY_COMPLETION_BONUS} 🏆 Bônus de Território!`);
+        setTimeout(() => setTerritoryBonus(null), 2800);
+      } else {
+        setCoinAnimation(reward);
+      }
       setTimeout(() => setCoinAnimation(null), 1200);
     },
     []
@@ -351,10 +363,21 @@ export default function Home() {
         </div>
       )}
 
+      {territoryBonus !== null && (
+        <div className="fixed top-1/2 left-1/2 z-50 pointer-events-none -translate-x-1/2 -translate-y-1/2"
+          style={{ animation: "bonus-pop 2.8s ease-out forwards" }}>
+          <div className="bg-yellow-900/90 border-2 border-yellow-400 rounded-xl px-6 py-4 text-center shadow-2xl">
+            <div className="text-yellow-300 font-bold text-2xl" style={{ fontFamily: "MedievalSharp, serif" }}>Território Conquistado!</div>
+            <div className="text-yellow-400 font-bold text-3xl mt-1">{territoryBonus}</div>
+          </div>
+        </div>
+      )}
+
       <WelcomeOverlay show={gameState.completedLevels.length === 0 && gameState.coins === 0} />
 
       <style>{`
         @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+        @keyframes bonus-pop { 0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; } 15% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; } 25% { transform: translate(-50%,-50%) scale(1); opacity: 1; } 75% { transform: translate(-50%,-50%) scale(1); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(0.9); opacity: 0; } }
       `}</style>
     </div>
   );
