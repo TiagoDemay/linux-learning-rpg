@@ -12,6 +12,7 @@ interface HUDProps {
   view: View;
   onViewChange: (view: View) => void;
   onResetGame: () => void | Promise<void>;
+  onOpenShop: () => void;
   user: User | null | undefined;
   isAuthenticated: boolean;
   activeTournament?: string;
@@ -24,6 +25,7 @@ export default function HUD({
   view,
   onViewChange,
   onResetGame,
+  onOpenShop,
   user,
   isAuthenticated,
   activeTournament,
@@ -132,17 +134,21 @@ export default function HUD({
 
       {/* Right: Coins + Auth + Navigation */}
       <div className="flex items-center gap-2">
-        {/* Coin display */}
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+        {/* Coin display + Loja do Tux — clicável */}
+        <button
+          onClick={onOpenShop}
+          title="Abrir Loja do Tux"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all hover:scale-105 active:scale-95"
           style={{
             background: "linear-gradient(135deg, rgba(201,162,39,0.2), rgba(139,105,20,0.3))",
-            border: "2px solid #8b6914",
-            boxShadow: "0 0 8px rgba(201,162,39,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
+            border: "2px solid #c9a227",
+            boxShadow: "0 0 12px rgba(201,162,39,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+            cursor: "pointer",
+            outline: "none",
           }}
         >
           <TDCoin size={28} animate={coins > 0} />
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-start">
             <span
               style={{
                 fontFamily: "'MedievalSharp', serif",
@@ -155,9 +161,9 @@ export default function HUD({
             >
               {coins.toLocaleString()}
             </span>
-            <span style={{ color: "#8b6914", fontSize: "0.55rem" }}>moedas</span>
+            <span style={{ color: "#f5c842", fontSize: "0.55rem", fontWeight: "bold" }}>🛒 Loja do Tux</span>
           </div>
-        </div>
+        </button>
 
         {/* Auth: login button or user name */}
         {!isAuthenticated ? (

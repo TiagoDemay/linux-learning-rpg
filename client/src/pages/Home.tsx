@@ -354,6 +354,7 @@ export default function Home() {
         view={view}
         onViewChange={handleViewChange}
         onResetGame={handleResetGame}
+        onOpenShop={() => setShopOpen(true)}
         user={user}
         isAuthenticated={isAuthenticated}
         activeTournament={activeTournamentData?.name}
