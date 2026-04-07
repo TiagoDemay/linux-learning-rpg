@@ -399,12 +399,44 @@ export default function RPGMap({
                   </span>
                 )}
                 {status === "locked" && (
-                  <span
-                    className="absolute -top-1 -right-1 text-xs bg-gray-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
-                    style={{ fontSize: "0.6rem" }}
-                  >
-                    🔒
-                  </span>
+                  <>
+                    {/* Ícone de cadeado */}
+                    <span
+                      className="absolute -top-1 -right-1 text-xs bg-gray-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                      style={{ fontSize: "0.6rem", zIndex: 2 }}
+                    >
+                      🔒
+                    </span>
+                    {/* Névoa cinza — camada externa pulsante */}
+                    <div
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        width: "76px",
+                        height: "76px",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "radial-gradient(circle, rgba(110,110,120,0.6) 0%, rgba(70,70,80,0.25) 55%, transparent 80%)",
+                        animation: "fog-outer 4s ease-in-out infinite",
+                        zIndex: 1,
+                      }}
+                    />
+                    {/* Névoa cinza — camada interna defasada */}
+                    <div
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        width: "58px",
+                        height: "58px",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "radial-gradient(circle, rgba(150,150,160,0.5) 0%, rgba(100,100,110,0.15) 65%, transparent 90%)",
+                        animation: "fog-inner 4s ease-in-out infinite",
+                        animationDelay: "1.5s",
+                        zIndex: 1,
+                      }}
+                    />
+                  </>
                 )}
                 {status === "current" && (
                   <div
@@ -658,6 +690,15 @@ export default function RPGMap({
         @keyframes kingdom-ring-inner {
           0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
           50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.15; }
+        }
+        @keyframes fog-outer {
+          0%, 100% { transform: translate(-50%, -50%) scale(1);   opacity: 0.85; }
+          40%       { transform: translate(-50%, -50%) scale(1.3); opacity: 0.3;  }
+          70%       { transform: translate(-50%, -50%) scale(1.1); opacity: 0.65; }
+        }
+        @keyframes fog-inner {
+          0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.7;  }
+          50%       { transform: translate(-50%, -50%) scale(1.25); opacity: 0.15; }
         }
       `}</style>
     </div>

@@ -187,3 +187,6 @@
 
 ## Login Obrigatório
 - [x] Tornar login obrigatório antes de iniciar o jogo (tela bloqueante para não autenticados)
+
+## Visual Gamificado
+- [x] Névoa cinza animada nos marcadores de territórios bloqueados no mapa
