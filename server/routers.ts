@@ -6,6 +6,94 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant, setAllParticipants, deleteTournamentFromHistory, deleteUser, setUserBlocked, getTournamentEventTimestamp, getAllUsersForAdmin } from "./db";
 
+// ── Security constants ────────────────────────────────────────────────────────
+// Moedas máximas ganháveis legitimamente:
+// 1752 (100 desafios) + 800 (10 bônus de território × 80) + margem para Amuleto da Fortuna
+const MAX_COINS = 3000;
+const MAX_CHALLENGE_PROGRESS_PER_LEVEL = 10;
+const VALID_LEVEL_IDS = new Set([
+  "floresta-stallman", "tundra-slackware", "montanhas-kernighan", "pantano-systemd",
+  "reino-torvalds", "cidade-gnu", "planicies-redhat", "deserto-debian",
+  "ilhas-canonical", "vale-arch",
+]);
+
+/**
+ * Valida o progresso recebido do cliente contra os limites do jogo.
+ * Lança TRPCError se detectar manipulação.
+ */
+function validateProgress(input: {
+  coins: number;
+  unlockedLevels: string[];
+  completedLevels: string[];
+  currentLevel: string;
+  challengeProgress: Record<string, number>;
+}, existing: { coins: number; challengeProgress: Record<string, number> } | null) {
+  // 1. Limite absoluto de moedas
+  if (input.coins > MAX_COINS) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Valor de moedas inválido: ${input.coins}. Máximo permitido: ${MAX_COINS}.`,
+    });
+  }
+
+  // 2. Moedas não podem diminuir abruptamente (anti-rollback de progresso)
+  // Permitimos uma margem de 800 para compras na loja
+  if (existing && input.coins < existing.coins - 800) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Redução de moedas suspeita detectada.",
+    });
+  }
+
+  // 3. IDs de territórios devem ser válidos
+  for (const levelId of input.unlockedLevels) {
+    if (!VALID_LEVEL_IDS.has(levelId)) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `Território inválido: ${levelId}` });
+    }
+  }
+  for (const levelId of input.completedLevels) {
+    if (!VALID_LEVEL_IDS.has(levelId)) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `Território concluído inválido: ${levelId}` });
+    }
+  }
+  if (!VALID_LEVEL_IDS.has(input.currentLevel)) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: `Território atual inválido: ${input.currentLevel}` });
+  }
+
+  // 4. Progresso de desafios não pode exceder o máximo por território
+  for (const [levelId, progress] of Object.entries(input.challengeProgress)) {
+    if (!VALID_LEVEL_IDS.has(levelId)) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `Território de progresso inválido: ${levelId}` });
+    }
+    if (typeof progress !== "number" || progress < 0 || progress > MAX_CHALLENGE_PROGRESS_PER_LEVEL) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `Progresso inválido para ${levelId}: ${progress}. Máximo: ${MAX_CHALLENGE_PROGRESS_PER_LEVEL}.`,
+      });
+    }
+    // 5. Progresso não pode regredir (anti-replay de desafios para ganhar moedas novamente)
+    if (existing?.challengeProgress?.[levelId] !== undefined) {
+      const existingProgress = existing.challengeProgress[levelId] as number;
+      if (progress < existingProgress) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Regressão de progresso detectada em ${levelId}: ${progress} < ${existingProgress}.`,
+        });
+      }
+    }
+  }
+
+  // 6. Territórios completados devem estar desbloqueados
+  for (const levelId of input.completedLevels) {
+    if (!input.unlockedLevels.includes(levelId)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `Território ${levelId} marcado como completo mas não desbloqueado.`,
+      });
+    }
+  }
+}
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -44,14 +132,26 @@ export const appRouter = router({
     save: protectedProcedure
       .input(
         z.object({
-          coins: z.number().min(0),
-          unlockedLevels: z.array(z.string()),
-          completedLevels: z.array(z.string()),
+          coins: z.number().min(0).max(MAX_COINS),
+          unlockedLevels: z.array(z.string()).max(VALID_LEVEL_IDS.size),
+          completedLevels: z.array(z.string()).max(VALID_LEVEL_IDS.size),
           currentLevel: z.string(),
-          challengeProgress: z.record(z.string(), z.number()),
+          challengeProgress: z.record(z.string(), z.number().min(0).max(MAX_CHALLENGE_PROGRESS_PER_LEVEL)),
         })
       )
       .mutation(async ({ ctx, input }) => {
+        // Busca o progresso atual do servidor para validação anti-cheat
+        const existing = await getUserProgress(ctx.user.id);
+        const existingForValidation = existing
+          ? {
+              coins: existing.coins,
+              challengeProgress: (existing.challengeProgress ?? {}) as Record<string, number>,
+            }
+          : null;
+
+        // Valida o progresso recebido contra os limites do jogo
+        validateProgress(input, existingForValidation);
+
         await upsertUserProgress({
           userId: ctx.user.id,
           coins: input.coins,

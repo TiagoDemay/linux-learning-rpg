@@ -194,3 +194,6 @@
 - [x] Aumentar área de névoa dos territórios bloqueados (rx/ry maiores)
 - [x] Moeda no HUD clicável para abrir Loja do Tux + label "Loja do Tux" ao lado
 - [x] Scroll vertical na tabela de alunos do Painel do Professor
+
+## Segurança — Auditoria de Moedas
+- [x] Auditar e corrigir todas as falhas que permitem acúmulo fraudulento de moedas
