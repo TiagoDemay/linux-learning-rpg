@@ -11,6 +11,21 @@ import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, get
 // 1752 (100 desafios) + 800 (10 bônus de território × 80) + margem para Amuleto da Fortuna
 const MAX_COINS = 3000;
 const MAX_CHALLENGE_PROGRESS_PER_LEVEL = 10;
+const VALID_SHOP_ITEM_IDS = new Set([
+  "autocomplete", "reveal-hint", "man-extended", "history-50",
+  "cheat-sheet-network", "cheat-sheet-git", "cheat-sheet-permissions",
+  "double-coins", "skip-challenge",
+]);
+const SHOP_ITEM_MAX_STACK: Record<string, number> = {
+  "autocomplete": 1, "man-extended": 1, "history-50": 1,
+  "cheat-sheet-network": 1, "cheat-sheet-git": 1, "cheat-sheet-permissions": 1,
+  "reveal-hint": 10, "double-coins": 5, "skip-challenge": 3,
+};
+const SHOP_ITEM_PRICES: Record<string, number> = {
+  "autocomplete": 30, "reveal-hint": 15, "man-extended": 25, "history-50": 20,
+  "cheat-sheet-network": 20, "cheat-sheet-git": 20, "cheat-sheet-permissions": 20,
+  "double-coins": 40, "skip-challenge": 50,
+};
 const VALID_LEVEL_IDS = new Set([
   "floresta-stallman", "tundra-slackware", "montanhas-kernighan", "pantano-systemd",
   "reino-torvalds", "cidade-gnu", "planicies-redhat", "deserto-debian",
@@ -27,6 +42,8 @@ function validateProgress(input: {
   completedLevels: string[];
   currentLevel: string;
   challengeProgress: Record<string, number>;
+  purchasedItems?: string[];
+  consumableStock?: Record<string, number>;
 }, existing: { coins: number; challengeProgress: Record<string, number> } | null) {
   // 1. Limite absoluto de moedas
   if (input.coins > MAX_COINS) {
@@ -92,6 +109,39 @@ function validateProgress(input: {
       });
     }
   }
+
+  // 7. Itens comprados devem ser IDs válidos
+  if (input.purchasedItems) {
+    for (const itemId of input.purchasedItems) {
+      if (!VALID_SHOP_ITEM_IDS.has(itemId)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Item de loja inválido: ${itemId}` });
+      }
+    }
+    // Custo mínimo de moedas para os itens permanentes comprados
+    const permanentItems = ["autocomplete", "man-extended", "history-50", "cheat-sheet-network", "cheat-sheet-git", "cheat-sheet-permissions"];
+    const permanentCost = input.purchasedItems
+      .filter(id => permanentItems.includes(id))
+      .reduce((sum, id) => sum + (SHOP_ITEM_PRICES[id] ?? 0), 0);
+    if (permanentCost > MAX_COINS) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Custo de itens permanentes excede o limite máximo." });
+    }
+  }
+
+  // 8. Estoque de consumíveis deve respeitar os limites máximos
+  if (input.consumableStock) {
+    for (const [itemId, qty] of Object.entries(input.consumableStock)) {
+      if (!VALID_SHOP_ITEM_IDS.has(itemId)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Item consumível inválido: ${itemId}` });
+      }
+      const maxStack = SHOP_ITEM_MAX_STACK[itemId] ?? 1;
+      if (typeof qty !== "number" || qty < 0 || qty > maxStack) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Quantidade inválida para ${itemId}: ${qty}. Máximo: ${maxStack}.`,
+        });
+      }
+    }
+  }
 }
 
 export const appRouter = router({
@@ -137,6 +187,8 @@ export const appRouter = router({
           completedLevels: z.array(z.string()).max(VALID_LEVEL_IDS.size),
           currentLevel: z.string(),
           challengeProgress: z.record(z.string(), z.number().min(0).max(MAX_CHALLENGE_PROGRESS_PER_LEVEL)),
+          purchasedItems: z.array(z.string()).optional(),
+          consumableStock: z.record(z.string(), z.number().min(0).max(999)).optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {

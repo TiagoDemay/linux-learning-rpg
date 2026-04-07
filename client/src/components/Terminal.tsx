@@ -254,7 +254,7 @@ export default function Terminal({
         if (next) {
           addLine("system", `📜 PRÓXIMO DESAFIO ${currentChallengeIndex + 2}/${totalChallenges}: ${next.title}`);
           addLine("system", `   ${next.description}`);
-          addLine("system", `   💡 Dica: ${next.hint}`);
+          // Dica não é exibida automaticamente — use o comando 'hint' ou compre um Pergaminho da Revelação
         }
       }
       addLine("success", "");
@@ -569,16 +569,14 @@ export default function Terminal({
                 {currentChallenge.commands.map((cmd) => (
                   <div
                     key={cmd}
-                    className="mb-1 cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setInput(cmd + " ")}
-                    title="Clique para inserir"
+                    className="mb-1"
                   >
                     <code
                       className="px-2 py-0.5 rounded text-xs"
                       style={{
-                        background: "rgba(168,255,120,0.1)",
+                        background: "rgba(168,255,120,0.08)",
                         color: "#a8ff78",
-                        border: "1px solid rgba(168,255,120,0.2)",
+                        border: "1px solid rgba(168,255,120,0.15)",
                       }}
                     >
                       {cmd}

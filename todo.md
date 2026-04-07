@@ -197,3 +197,11 @@
 
 ## Segurança — Auditoria de Moedas
 - [x] Auditar e corrigir todas as falhas que permitem acúmulo fraudulento de moedas
+
+## Auditoria de Segurança Completa
+- [x] Auditoria completa: respostas hardcoded, rotas abertas, APIs expostas
+- [x] V2: Remover hint automático ao avançar desafio no Terminal.tsx
+- [x] V4: Adicionar helmet + reduzir body parser para 1mb
+- [x] V5: Remover openId do select em getTopPlayers no db.ts
+- [x] V7: Validar purchasedItems e consumableStock no progress.save server-side
+- [x] V8: Remover botões clicáveis de commands[] do painel lateral do terminal

@@ -343,7 +343,6 @@ export async function getTopPlayers(limit = 20) {
       currentLevel: userProgress.currentLevel,
       updatedAt: userProgress.updatedAt,
       name: users.name,
-      openId: users.openId,
     })
     .from(userProgress)
     .innerJoin(users, eq(userProgress.userId, users.id));
@@ -358,7 +357,6 @@ export async function getTopPlayers(limit = 20) {
         currentLevel: userProgress.currentLevel,
         updatedAt: userProgress.updatedAt,
         name: users.name,
-        openId: users.openId,
       })
       .from(userProgress)
       .innerJoin(users, eq(userProgress.userId, users.id))
@@ -379,7 +377,6 @@ export async function getTopPlayers(limit = 20) {
       currentLevel: userProgress.currentLevel,
       updatedAt: userProgress.updatedAt,
       name: users.name,
-      openId: users.openId,
     })
     .from(userProgress)
     .innerJoin(users, eq(userProgress.userId, users.id))
