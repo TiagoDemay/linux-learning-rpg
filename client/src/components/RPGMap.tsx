@@ -316,16 +316,16 @@ export default function RPGMap({
             if (status !== "locked") return null;
             // rx/ry calibrados por bioma para cobrir a área visual do território
             const biomeSize: Record<string, { rx: number; ry: number }> = {
-              forest:   { rx: 14, ry: 12 },
-              tundra:   { rx: 16, ry: 11 },
-              mountain: { rx: 13, ry: 12 },
-              swamp:    { rx: 13, ry: 12 },
-              kingdom:  { rx: 15, ry: 13 },
-              port:     { rx: 12, ry: 11 },
-              plains:   { rx: 13, ry: 11 },
-              desert:   { rx: 14, ry: 11 },
-              island:   { rx: 12, ry: 11 },
-              volcano:  { rx: 11, ry: 10 },
+              forest:   { rx: 22, ry: 20 },
+              tundra:   { rx: 24, ry: 18 },
+              mountain: { rx: 20, ry: 19 },
+              swamp:    { rx: 21, ry: 20 },
+              kingdom:  { rx: 23, ry: 21 },
+              port:     { rx: 19, ry: 18 },
+              plains:   { rx: 20, ry: 18 },
+              desert:   { rx: 22, ry: 18 },
+              island:   { rx: 19, ry: 18 },
+              volcano:  { rx: 18, ry: 17 },
             };
             const { rx, ry } = biomeSize[level.biome] ?? { rx: 12, ry: 11 };
             return (
