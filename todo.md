@@ -184,3 +184,6 @@
 
 ## Bônus de Conclusão de Território
 - [x] Adicionar bônus de 80 moedas ao completar todos os desafios de um território
+
+## Login Obrigatório
+- [x] Tornar login obrigatório antes de iniciar o jogo (tela bloqueante para não autenticados)

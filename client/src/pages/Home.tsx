@@ -268,6 +268,80 @@ export default function Home() {
     utils.ranking.getTop.invalidate();
   }, [resetGameMutation, utils]);
 
+  // Tela de login obrigatória — bloqueia o jogo para usuários não autenticados
+  if (!isAuthenticated) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          background: "linear-gradient(135deg, #1a0f0a 0%, #2c1810 50%, #1a0f0a 100%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 24,
+          fontFamily: "'MedievalSharp', serif",
+        }}
+      >
+        {/* Brasão / ícone */}
+        <div style={{ fontSize: 80, lineHeight: 1 }}>🐧</div>
+
+        {/* Título */}
+        <div style={{ textAlign: "center" }}>
+          <h1 style={{ color: "#c8a84b", fontSize: 32, margin: 0, textShadow: "0 2px 8px #000" }}>
+            Terras do Kernel
+          </h1>
+          <p style={{ color: "#a0856a", fontSize: 16, marginTop: 8 }}>
+            O grande mapa aguarda seu aventureiro.
+          </p>
+        </div>
+
+        {/* Caixa de login */}
+        <div
+          style={{
+            background: "rgba(0,0,0,0.6)",
+            border: "2px solid #c8a84b",
+            borderRadius: 12,
+            padding: "32px 40px",
+            textAlign: "center",
+            maxWidth: 360,
+            width: "90%",
+          }}
+        >
+          <p style={{ color: "#f5e6c8", fontSize: 15, marginBottom: 24, lineHeight: 1.6 }}>
+            Para embarcar nesta jornada, você precisa identificar-se.
+            Faça login para salvar seu progresso e competir no ranking.
+          </p>
+          <a
+            href={getLoginUrl()}
+            style={{
+              display: "inline-block",
+              background: "linear-gradient(135deg, #c8a84b, #8b6914)",
+              color: "#1a0f0a",
+              fontFamily: "'MedievalSharp', serif",
+              fontWeight: "bold",
+              fontSize: 16,
+              padding: "12px 32px",
+              borderRadius: 8,
+              textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(200,168,75,0.4)",
+              transition: "opacity 0.2s",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.opacity = "0.85")}
+            onMouseOut={(e) => (e.currentTarget.style.opacity = "1")}
+          >
+            ⚔️ Entrar no Jogo
+          </a>
+        </div>
+
+        {/* Rodapé */}
+        <p style={{ color: "#5a3e2b", fontSize: 12, marginTop: 8 }}>
+          Linux Learning RPG — Terras do Kernel
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex flex-col"
