@@ -279,6 +279,81 @@ export default function RPGMap({
               </g>
             );
           })}
+         </svg>
+
+        {/* ── TERRITORY FOG OVERLAY (SVG) ── */}
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          style={{ zIndex: 2, pointerEvents: "none" }}
+        >
+          <defs>
+            {LEVELS.map((level) => {
+              const status = getLevelStatus(level);
+              if (status !== "locked") return null;
+              return (
+                <radialGradient
+                  key={`fog-grad-${level.id}`}
+                  id={`fog-grad-${level.id}`}
+                  cx="50%" cy="50%" r="50%"
+                >
+                  <stop offset="0%"   stopColor="#6b6b7a" stopOpacity="0.82" />
+                  <stop offset="45%"  stopColor="#5a5a68" stopOpacity="0.65" />
+                  <stop offset="75%"  stopColor="#404050" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#2a2a38" stopOpacity="0" />
+                </radialGradient>
+              );
+            })}
+            <filter id="fog-blur">
+              <feGaussianBlur stdDeviation="1.8" />
+            </filter>
+          </defs>
+
+          {/* Névoa territorial — uma elipse grande por território bloqueado */}
+          {LEVELS.map((level) => {
+            const status = getLevelStatus(level);
+            if (status !== "locked") return null;
+            // rx/ry calibrados por bioma para cobrir a área visual do território
+            const biomeSize: Record<string, { rx: number; ry: number }> = {
+              forest:   { rx: 14, ry: 12 },
+              tundra:   { rx: 16, ry: 11 },
+              mountain: { rx: 13, ry: 12 },
+              swamp:    { rx: 13, ry: 12 },
+              kingdom:  { rx: 15, ry: 13 },
+              port:     { rx: 12, ry: 11 },
+              plains:   { rx: 13, ry: 11 },
+              desert:   { rx: 14, ry: 11 },
+              island:   { rx: 12, ry: 11 },
+              volcano:  { rx: 11, ry: 10 },
+            };
+            const { rx, ry } = biomeSize[level.biome] ?? { rx: 12, ry: 11 };
+            return (
+              <g key={`fog-${level.id}`}>
+                {/* Camada base — névoa densa com blur */}
+                <ellipse
+                  cx={level.x}
+                  cy={level.y}
+                  rx={rx}
+                  ry={ry}
+                  fill={`url(#fog-grad-${level.id})`}
+                  filter="url(#fog-blur)"
+                  style={{ animation: `fog-territory-pulse 5s ease-in-out infinite` }}
+                />
+                {/* Camada de ruído — dá textura de névoa real */}
+                <ellipse
+                  cx={level.x + 1}
+                  cy={level.y - 1}
+                  rx={rx * 0.75}
+                  ry={ry * 0.75}
+                  fill={`url(#fog-grad-${level.id})`}
+                  filter="url(#fog-blur)"
+                  opacity="0.55"
+                  style={{ animation: `fog-territory-pulse 5s ease-in-out infinite`, animationDelay: "2s" }}
+                />
+              </g>
+            );
+          })}
         </svg>
 
         {/* ── LEVEL NODES ── */}
@@ -699,6 +774,11 @@ export default function RPGMap({
         @keyframes fog-inner {
           0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.7;  }
           50%       { transform: translate(-50%, -50%) scale(1.25); opacity: 0.15; }
+        }
+        @keyframes fog-territory-pulse {
+          0%, 100% { opacity: 1;    }
+          45%       { opacity: 0.45; }
+          70%       { opacity: 0.8;  }
         }
       `}</style>
     </div>

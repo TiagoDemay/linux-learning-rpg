@@ -190,3 +190,4 @@
 
 ## Visual Gamificado
 - [x] Névoa cinza animada nos marcadores de territórios bloqueados no mapa
+- [x] Névoa cinza cobrindo toda a área geográfica dos territórios bloqueados no mapa (não apenas o marcador)
