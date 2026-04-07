@@ -269,7 +269,7 @@ export default function ProfessorPanel() {
   const completedAll = students?.filter((s) => s.completedCount >= 10).length ?? 0;
 
   return (
-    <div className="min-h-screen bg-[#1a0f00] text-amber-100 flex flex-col">
+    <div className="h-screen bg-[#1a0f00] text-amber-100 flex flex-col overflow-hidden">
       {/* ── Header ── */}
       <header className="bg-[#2c1a00] border-b border-amber-900/50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -297,7 +297,7 @@ export default function ProfessorPanel() {
         </div>
       </header>
 
-      <div className="flex-1 p-6 space-y-6 max-w-[1400px] mx-auto w-full">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px] mx-auto w-full">
         {/* ── Abas ── */}
         <div className="flex gap-2 border-b border-amber-900/40 pb-0 flex-wrap">
           <button

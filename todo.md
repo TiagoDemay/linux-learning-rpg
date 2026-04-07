@@ -193,3 +193,4 @@
 - [x] Névoa cinza cobrindo toda a área geográfica dos territórios bloqueados no mapa (não apenas o marcador)
 - [x] Aumentar área de névoa dos territórios bloqueados (rx/ry maiores)
 - [x] Moeda no HUD clicável para abrir Loja do Tux + label "Loja do Tux" ao lado
+- [x] Scroll vertical na tabela de alunos do Painel do Professor
