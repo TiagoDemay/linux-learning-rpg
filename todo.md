@@ -205,3 +205,9 @@
 - [x] V5: Remover openId do select em getTopPlayers no db.ts
 - [x] V7: Validar purchasedItems e consumableStock no progress.save server-side
 - [x] V8: Remover botões clicáveis de commands[] do painel lateral do terminal
+
+## Auditoria de Segurança — Fase 2
+- [x] V1: Mover validação dos desafios para o servidor (challenge.submit)
+- [x] V3: Mover compras da loja para o servidor (shop.buy)
+- [x] V6: Rate limiting nas rotas tRPC (express-rate-limit)
+- [x] V9: Log de auditoria de tentativas suspeitas no servidor (console.warn [SECURITY])

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -31,13 +32,62 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Trust proxy — necessário para rate limiting funcionar corretamente em produção
+  app.set("trust proxy", 1);
+
   // Security headers
   app.use(helmet({ contentSecurityPolicy: false }));
+
   // Body parser — 1mb is sufficient for game state JSON
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ limit: "1mb", extended: true }));
+
+  // Rate limiting — protege contra abuso de API
+  // Geral: 200 req/min por IP para todas as rotas tRPC
+  const generalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Muitas requisições. Tente novamente em breve." },
+  });
+
+  // Estrito: 30 req/min para progress.save (anti-spam de progresso)
+  const saveLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de salvamentos atingido. Aguarde 1 minuto." },
+  });
+
+  // Estrito: 20 req/min para challenge.submit (anti-brute-force de respostas)
+  const submitLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de tentativas atingido. Aguarde 1 minuto." },
+  });
+
+  // Estrito: 10 req/min para shop.buy (anti-spam de compras)
+  const shopLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de compras atingido. Aguarde 1 minuto." },
+  });
+
+  app.use("/api/trpc", generalLimiter);
+  app.use("/api/trpc/progress.save", saveLimiter);
+  app.use("/api/trpc/challenge.submit", submitLimiter);
+  app.use("/api/trpc/shop.buy", shopLimiter);
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
   // tRPC API
   app.use(
     "/api/trpc",
@@ -46,6 +96,7 @@ async function startServer() {
       createContext,
     })
   );
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

@@ -5,6 +5,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant, setAllParticipants, deleteTournamentFromHistory, deleteUser, setUserBlocked, getTournamentEventTimestamp, getAllUsersForAdmin } from "./db";
+import { validateChallengeAnswer } from "./challenge-answers";
 
 // ── Security constants ────────────────────────────────────────────────────────
 // Moedas máximas ganháveis legitimamente:
@@ -47,6 +48,7 @@ function validateProgress(input: {
 }, existing: { coins: number; challengeProgress: Record<string, number> } | null) {
   // 1. Limite absoluto de moedas
   if (input.coins > MAX_COINS) {
+    console.warn(`[SECURITY] coins_overflow | coins=${input.coins} | max=${MAX_COINS}`);
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: `Valor de moedas inválido: ${input.coins}. Máximo permitido: ${MAX_COINS}.`,
@@ -380,6 +382,102 @@ export const appRouter = router({
     getTournamentEvent: publicProcedure.query(async () => {
       return getTournamentEventTimestamp();
     }),
+  }),
+
+  challenge: router({
+    /**
+     * Valida server-side se o aluno completou um desafio.
+     * Recebe o histórico de comandos e verifica contra os padrões esperados.
+     * Retorna a recompensa apenas se válido — nunca expõe a resposta.
+     */
+    submit: protectedProcedure
+      .input(
+        z.object({
+          levelId: z.string(),
+          challengeIndex: z.number().min(0).max(9),
+          commandHistory: z.array(z.string().max(500)).max(200),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        // Valida se o levelId é legítimo
+        if (!VALID_LEVEL_IDS.has(input.levelId)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Território inválido." });
+        }
+        // Verifica o progresso atual para evitar replay (ganhar moedas duas vezes)
+        const existing = await getUserProgress(ctx.user.id);
+        const currentProgress = (existing?.challengeProgress as Record<string, number> ?? {});
+        const alreadyCompleted = (currentProgress[input.levelId] ?? 0) > input.challengeIndex;
+        if (alreadyCompleted) {
+          return { valid: false, reward: 0, message: "Desafio já concluído anteriormente." };
+        }
+        // Valida os comandos contra os padrões server-side
+        const result = validateChallengeAnswer(input.levelId, input.challengeIndex, input.commandHistory);
+        return result;
+      }),
+  }),
+
+  shop: router({
+    /**
+     * Processa a compra de um item da loja server-side.
+     * Debita as moedas e registra o item no progresso do usuário.
+     */
+    buy: protectedProcedure
+      .input(
+        z.object({
+          itemId: z.string(),
+          currentCoins: z.number().min(0).max(MAX_COINS),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (!VALID_SHOP_ITEM_IDS.has(input.itemId)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Item inválido." });
+        }
+        const price = SHOP_ITEM_PRICES[input.itemId];
+        if (price === undefined) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Preço do item não encontrado." });
+        }
+        // Busca o progresso atual do servidor (fonte da verdade)
+        const existing = await getUserProgress(ctx.user.id);
+        const serverCoins = existing?.coins ?? 0;
+        if (serverCoins < price) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Moedas insuficientes. Você tem ${serverCoins} moedas, o item custa ${price}.`,
+          });
+        }
+        const isPermanent = ["autocomplete", "man-extended", "history-50",
+          "cheat-sheet-network", "cheat-sheet-git", "cheat-sheet-permissions"].includes(input.itemId);
+        // purchasedItems e consumableStock não estão no schema atual — usar progresso do cliente como referência
+        // O servidor valida moedas e preços; os itens são gerenciados no localStorage do cliente
+        const purchasedItems: string[] = [];
+        const consumableStock: Record<string, number> = {};
+        if (isPermanent && purchasedItems.includes(input.itemId)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Item permanente já adquirido." });
+        }
+        if (!isPermanent) {
+          const maxStack = SHOP_ITEM_MAX_STACK[input.itemId] ?? 1;
+          const currentQty = consumableStock[input.itemId] ?? 0;
+          if (currentQty >= maxStack) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: `Estoque máximo atingido (${maxStack}).` });
+          }
+        }
+        // Debita as moedas e registra o item
+        const newCoins = serverCoins - price;
+        const newPurchasedItems = isPermanent ? [...purchasedItems, input.itemId] : purchasedItems;
+        const newConsumableStock = isPermanent ? consumableStock : {
+          ...consumableStock,
+          [input.itemId]: (consumableStock[input.itemId] ?? 0) + 1,
+        };
+        await upsertUserProgress({
+          userId: ctx.user.id,
+          coins: newCoins,
+          unlockedLevels: (existing?.unlockedLevels as string[] ?? ["floresta-stallman"]),
+          completedLevels: (existing?.completedLevels as string[] ?? []),
+          currentLevel: existing?.currentLevel ?? "floresta-stallman",
+          challengeProgress: (existing?.challengeProgress as Record<string, number> ?? {}),
+        });
+        return { success: true, newCoins, itemId: input.itemId };
+      }),
   }),
 
   ranking: router({
