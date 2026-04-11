@@ -30,6 +30,30 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // ── Validação de variáveis de ambiente obrigatórias ───────────────────────
+  if (!process.env.JWT_SECRET) {
+    throw new Error(
+      "[STARTUP] JWT_SECRET ausente. " +
+      "Defina a variável de ambiente JWT_SECRET antes de iniciar o servidor."
+    );
+  }
+  if (process.env.JWT_SECRET.length < 32) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[STARTUP] JWT_SECRET muito curto em produção. Mínimo: 32 caracteres. " +
+        "Defina a variável de ambiente JWT_SECRET antes de iniciar o servidor."
+      );
+    } else {
+      console.warn("[STARTUP] Aviso: JWT_SECRET tem menos de 32 caracteres. Em produção isso causará erro fatal.");
+    }
+  }
+  if (!process.env.DATABASE_URL) {
+    throw new Error(
+      "[STARTUP] DATABASE_URL é obrigatório. " +
+      "Defina a variável de ambiente DATABASE_URL antes de iniciar o servidor."
+    );
+  }
+
   const app = express();
   const server = createServer(app);
 

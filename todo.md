@@ -211,3 +211,16 @@
 - [x] V3: Mover compras da loja para o servidor (shop.buy)
 - [x] V6: Rate limiting nas rotas tRPC (express-rate-limit)
 - [x] V9: Log de auditoria de tentativas suspeitas no servidor (console.warn [SECURITY])
+
+## Correção Definitiva de Segurança (ZIP + GitHub)
+- [x] Aplicar migration SQL: purchasedItems, consumableStock, security_events
+- [x] Sincronizar schema.ts com o ZIP (purchasedItems, consumableStock, security_events)
+- [x] Atualizar db.ts com logSecurityEvent e getSecurityEvents
+- [x] Atualizar routers.ts com versão completa do ZIP
+- [x] Integrar Terminal.tsx com challenge.submit server-side
+- [x] Integrar Home.tsx com shop.buy server-side
+- [x] ShopModal.tsx: tipo onBuy aceita Promise (async)
+- [x] server/_core/index.ts: validação de JWT_SECRET e DATABASE_URL no startup
+- [x] server/_core/index.ts: rate limiting challenge.submit (20/min), shop.buy (10/min)
+- [x] server/_core/cookies.ts: cookies httpOnly, sameSite, secure atualizados
+- [x] 126 testes passando após todas as correções

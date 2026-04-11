@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant, setAllParticipants, deleteTournamentFromHistory, deleteUser, setUserBlocked, getTournamentEventTimestamp, getAllUsersForAdmin } from "./db";
+import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant, setAllParticipants, deleteTournamentFromHistory, deleteUser, setUserBlocked, getTournamentEventTimestamp, getAllUsersForAdmin, logSecurityEvent, getSecurityEvents } from "./db";
 import { validateChallengeAnswer } from "./challenge-answers";
 
 // ── Security constants ────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ const VALID_LEVEL_IDS = new Set([
  * Valida o progresso recebido do cliente contra os limites do jogo.
  * Lança TRPCError se detectar manipulação.
  */
-function validateProgress(input: {
+async function validateProgress(input: {
   coins: number;
   unlockedLevels: string[];
   completedLevels: string[];
@@ -45,59 +45,51 @@ function validateProgress(input: {
   challengeProgress: Record<string, number>;
   purchasedItems?: string[];
   consumableStock?: Record<string, number>;
-}, existing: { coins: number; challengeProgress: Record<string, number> } | null) {
+}, existing: { coins: number; challengeProgress: Record<string, number> } | null, userId?: number) {
+  // Helper: loga e lança erro
+  const reject = async (type: string, details: Record<string, unknown>, message: string) => {
+    if (userId) await logSecurityEvent(userId, type, { ...details, input_summary: { coins: input.coins, currentLevel: input.currentLevel } });
+    throw new TRPCError({ code: "BAD_REQUEST", message });
+  };
+
   // 1. Limite absoluto de moedas
   if (input.coins > MAX_COINS) {
-    console.warn(`[SECURITY] coins_overflow | coins=${input.coins} | max=${MAX_COINS}`);
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Valor de moedas inválido: ${input.coins}. Máximo permitido: ${MAX_COINS}.`,
-    });
+    await reject("coins_overflow", { coins: input.coins, max: MAX_COINS }, `Valor de moedas inválido: ${input.coins}. Máximo permitido: ${MAX_COINS}.`);
   }
 
   // 2. Moedas não podem diminuir abruptamente (anti-rollback de progresso)
-  // Permitimos uma margem de 800 para compras na loja
   if (existing && input.coins < existing.coins - 800) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Redução de moedas suspeita detectada.",
-    });
+    await reject("coins_rollback", { coins: input.coins, existing_coins: existing.coins }, "Redução de moedas suspeita detectada.");
   }
 
   // 3. IDs de territórios devem ser válidos
   for (const levelId of input.unlockedLevels) {
     if (!VALID_LEVEL_IDS.has(levelId)) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: `Território inválido: ${levelId}` });
+      await reject("invalid_level_unlocked", { levelId }, `Território inválido: ${levelId}`);
     }
   }
   for (const levelId of input.completedLevels) {
     if (!VALID_LEVEL_IDS.has(levelId)) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: `Território concluído inválido: ${levelId}` });
+      await reject("invalid_level_completed", { levelId }, `Território concluído inválido: ${levelId}`);
     }
   }
   if (!VALID_LEVEL_IDS.has(input.currentLevel)) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: `Território atual inválido: ${input.currentLevel}` });
+    await reject("invalid_level_current", { currentLevel: input.currentLevel }, `Território atual inválido: ${input.currentLevel}`);
   }
 
   // 4. Progresso de desafios não pode exceder o máximo por território
   for (const [levelId, progress] of Object.entries(input.challengeProgress)) {
     if (!VALID_LEVEL_IDS.has(levelId)) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: `Território de progresso inválido: ${levelId}` });
+      await reject("invalid_level_progress", { levelId }, `Território de progresso inválido: ${levelId}`);
     }
     if (typeof progress !== "number" || progress < 0 || progress > MAX_CHALLENGE_PROGRESS_PER_LEVEL) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Progresso inválido para ${levelId}: ${progress}. Máximo: ${MAX_CHALLENGE_PROGRESS_PER_LEVEL}.`,
-      });
+      await reject("invalid_progress_value", { levelId, progress, max: MAX_CHALLENGE_PROGRESS_PER_LEVEL }, `Progresso inválido para ${levelId}: ${progress}. Máximo: ${MAX_CHALLENGE_PROGRESS_PER_LEVEL}.`);
     }
     // 5. Progresso não pode regredir (anti-replay de desafios para ganhar moedas novamente)
     if (existing?.challengeProgress?.[levelId] !== undefined) {
       const existingProgress = existing.challengeProgress[levelId] as number;
       if (progress < existingProgress) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Regressão de progresso detectada em ${levelId}: ${progress} < ${existingProgress}.`,
-        });
+        await reject("progress_regression", { levelId, progress, existingProgress }, `Regressão de progresso detectada em ${levelId}: ${progress} < ${existingProgress}.`);
       }
     }
   }
@@ -105,10 +97,7 @@ function validateProgress(input: {
   // 6. Territórios completados devem estar desbloqueados
   for (const levelId of input.completedLevels) {
     if (!input.unlockedLevels.includes(levelId)) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Território ${levelId} marcado como completo mas não desbloqueado.`,
-      });
+      await reject("completed_not_unlocked", { levelId }, `Território ${levelId} marcado como completo mas não desbloqueado.`);
     }
   }
 
@@ -116,16 +105,15 @@ function validateProgress(input: {
   if (input.purchasedItems) {
     for (const itemId of input.purchasedItems) {
       if (!VALID_SHOP_ITEM_IDS.has(itemId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `Item de loja inválido: ${itemId}` });
+        await reject("invalid_item_purchased", { itemId }, `Item de loja inválido: ${itemId}`);
       }
     }
-    // Custo mínimo de moedas para os itens permanentes comprados
     const permanentItems = ["autocomplete", "man-extended", "history-50", "cheat-sheet-network", "cheat-sheet-git", "cheat-sheet-permissions"];
     const permanentCost = input.purchasedItems
       .filter(id => permanentItems.includes(id))
       .reduce((sum, id) => sum + (SHOP_ITEM_PRICES[id] ?? 0), 0);
     if (permanentCost > MAX_COINS) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "Custo de itens permanentes excede o limite máximo." });
+      await reject("items_cost_overflow", { permanentCost, max: MAX_COINS }, "Custo de itens permanentes excede o limite máximo.");
     }
   }
 
@@ -133,14 +121,11 @@ function validateProgress(input: {
   if (input.consumableStock) {
     for (const [itemId, qty] of Object.entries(input.consumableStock)) {
       if (!VALID_SHOP_ITEM_IDS.has(itemId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `Item consumível inválido: ${itemId}` });
+        await reject("invalid_consumable_id", { itemId }, `Item consumível inválido: ${itemId}`);
       }
       const maxStack = SHOP_ITEM_MAX_STACK[itemId] ?? 1;
       if (typeof qty !== "number" || qty < 0 || qty > maxStack) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Quantidade inválida para ${itemId}: ${qty}. Máximo: ${maxStack}.`,
-        });
+        await reject("consumable_stack_overflow", { itemId, qty, maxStack }, `Quantidade inválida para ${itemId}: ${qty}. Máximo: ${maxStack}.`);
       }
     }
   }
@@ -204,7 +189,7 @@ export const appRouter = router({
           : null;
 
         // Valida o progresso recebido contra os limites do jogo
-        validateProgress(input, existingForValidation);
+        await validateProgress(input, existingForValidation, ctx.user.id);
 
         await upsertUserProgress({
           userId: ctx.user.id,
@@ -382,6 +367,14 @@ export const appRouter = router({
     getTournamentEvent: publicProcedure.query(async () => {
       return getTournamentEventTimestamp();
     }),
+
+    /** Retorna os eventos de segurança mais recentes — exclusivo para admin */
+    getSecurityEvents: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(500).default(200) }).optional())
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
+        return getSecurityEvents(input?.limit ?? 200);
+      }),
   }),
 
   challenge: router({
@@ -447,10 +440,9 @@ export const appRouter = router({
         }
         const isPermanent = ["autocomplete", "man-extended", "history-50",
           "cheat-sheet-network", "cheat-sheet-git", "cheat-sheet-permissions"].includes(input.itemId);
-        // purchasedItems e consumableStock não estão no schema atual — usar progresso do cliente como referência
-        // O servidor valida moedas e preços; os itens são gerenciados no localStorage do cliente
-        const purchasedItems: string[] = [];
-        const consumableStock: Record<string, number> = {};
+        // Lê purchasedItems e consumableStock do banco — fonte da verdade no servidor
+        const purchasedItems: string[] = (existing?.purchasedItems as string[]) ?? [];
+        const consumableStock: Record<string, number> = (existing?.consumableStock as Record<string, number>) ?? {};
         if (isPermanent && purchasedItems.includes(input.itemId)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Item permanente já adquirido." });
         }
@@ -461,7 +453,7 @@ export const appRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: `Estoque máximo atingido (${maxStack}).` });
           }
         }
-        // Debita as moedas e registra o item
+        // Debita as moedas e registra o item no banco
         const newCoins = serverCoins - price;
         const newPurchasedItems = isPermanent ? [...purchasedItems, input.itemId] : purchasedItems;
         const newConsumableStock = isPermanent ? consumableStock : {
@@ -475,8 +467,10 @@ export const appRouter = router({
           completedLevels: (existing?.completedLevels as string[] ?? []),
           currentLevel: existing?.currentLevel ?? "floresta-stallman",
           challengeProgress: (existing?.challengeProgress as Record<string, number> ?? {}),
+          purchasedItems: newPurchasedItems,
+          consumableStock: newConsumableStock,
         });
-        return { success: true, newCoins, itemId: input.itemId };
+        return { success: true, newCoins, newPurchasedItems, newConsumableStock, itemId: input.itemId };
       }),
   }),
 

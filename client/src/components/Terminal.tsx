@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { trpc } from "../lib/trpc";
 import { executeCommand, getPrompt, type VFSState } from "../lib/terminal-logic";
 import { getLevelTaskGroup, getChallenge, getChallengeCount } from "../data/tasks";
 import { getLevelById } from "../data/levels";
@@ -65,6 +66,8 @@ export default function Terminal({
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sparkles, setSparkles] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const submitChallenge = trpc.challenge.submit.useMutation();
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -201,7 +204,7 @@ export default function Terminal({
       if (simulated !== null) {
         simulated.split("\n").forEach((line) => addLine("output", line));
         // ps/top/sudo/apt don't change VFS — just check task completion
-        checkChallengeCompletion(cmd, vfs, [cmd, ...commandHistory]);
+        void checkChallengeCompletion(cmd, vfs, [cmd, ...commandHistory]);
         return;
       }
 
@@ -221,60 +224,78 @@ export default function Terminal({
       }
 
       onVFSChange(result.newState);
-      checkChallengeCompletion(cmd, result.newState, [cmd, ...commandHistory]);
+      void checkChallengeCompletion(cmd, result.newState, [cmd, ...commandHistory]);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [input, vfs, currentChallenge, isLevelDone, commandHistory, currentLevel, currentChallengeIndex, totalChallenges]
+    [input, vfs, currentChallenge, isLevelDone, isValidating, commandHistory, currentLevel, currentChallengeIndex, totalChallenges]
   );
 
   const checkChallengeCompletion = useCallback(
-    (cmd: string, newVfs: VFSState, allCmds: string[]) => {
-      if (isLevelDone || !currentChallenge) return;
+    async (cmd: string, newVfs: VFSState, allCmds: string[]) => {
+      if (isLevelDone || !currentChallenge || isValidating) return;
 
-      const done = currentChallenge.validate(newVfs, allCmds);
-      if (!done) return;
+      setIsValidating(true);
+      try {
+        // Validação server-side — o servidor verifica os padrões e retorna a recompensa real
+        const result = await submitChallenge.mutateAsync({
+          levelId: currentLevel,
+          challengeIndex: currentChallengeIndex,
+          commandHistory: allCmds.slice(0, 200),
+        });
 
-      const isLast = currentChallengeIndex === totalChallenges - 1;
+        if (!result.valid) {
+          // Desafio ainda não concluído — sem feedback (continua tentando)
+          return;
+        }
 
-      setSparkles(true);
-      setTimeout(() => setSparkles(false), 3000);
+        const isLast = currentChallengeIndex === totalChallenges - 1;
 
-      addLine("success", "");
-      addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
-      addLine("success", `🎉 DESAFIO ${currentChallengeIndex + 1} CONCLUÍDO: ${currentChallenge.title}!`);
-      addLine("success", `🪙 +${currentChallenge.reward} moedas!`);
+        setSparkles(true);
+        setTimeout(() => setSparkles(false), 3000);
 
-      if (isLast) {
-        addLine("success", `🏆 TODOS OS DESAFIOS DE ${level?.name?.toUpperCase()} COMPLETOS!`);
-        addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
-      } else {
-        const next = getChallenge(currentLevel, currentChallengeIndex + 1);
-        addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
+        // Aplicar Amuleto da Fortuna se ativo
+        const effectiveReward = doubleCoinsActive ? result.reward * 2 : result.reward;
+
         addLine("success", "");
-        if (next) {
-          addLine("system", `📜 PRÓXIMO DESAFIO ${currentChallengeIndex + 2}/${totalChallenges}: ${next.title}`);
-          addLine("system", `   ${next.description}`);
-          // Dica não é exibida automaticamente — use o comando 'hint' ou compre um Pergaminho da Revelação
+        addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
+        addLine("success", `🎉 DESAFIO ${currentChallengeIndex + 1} CONCLUÍDO: ${currentChallenge.title}!`);
+        addLine("success", `🪙 +${effectiveReward} moedas!`);
+
+        if (doubleCoinsActive) {
+          addLine("success", `🪙 AMULETO DA FORTUNA! Recompensa dobrada: ${effectiveReward} moedas!`);
+          onDeactivateDoubleCoin();
         }
-      }
-      addLine("success", "");
 
-      // Aplicar Amuleto da Fortuna se ativo
-      const effectiveReward = doubleCoinsActive ? currentChallenge.reward * 2 : currentChallenge.reward;
-      if (doubleCoinsActive) {
-        addLine("success", `🪙 AMULETO DA FORTUNA! Recompensa dobrada: ${effectiveReward} moedas!`);
-        onDeactivateDoubleCoin();
-      }
-
-      setTimeout(() => {
-        onChallengeComplete(currentLevel, currentChallengeIndex, effectiveReward, isLast);
         if (isLast) {
-          onTaskComplete(currentLevel, 0); // notifica legado com reward 0 (já somado acima)
+          addLine("success", `🏆 TODOS OS DESAFIOS DE ${level?.name?.toUpperCase()} COMPLETOS!`);
+          addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
+        } else {
+          const next = getChallenge(currentLevel, currentChallengeIndex + 1);
+          addLine("success", "✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨");
+          addLine("success", "");
+          if (next) {
+            addLine("system", `📜 PRÓXIMO DESAFIO ${currentChallengeIndex + 2}/${totalChallenges}: ${next.title}`);
+            addLine("system", `   ${next.description}`);
+          }
         }
-      }, 400);
+        addLine("success", "");
+
+        setTimeout(() => {
+          onChallengeComplete(currentLevel, currentChallengeIndex, effectiveReward, isLast);
+          if (isLast) {
+            onTaskComplete(currentLevel, 0);
+          }
+        }, 400);
+      } catch (err) {
+        // Erro de rede ou servidor — não travar o terminal, apenas logar
+        console.error("[Terminal] Falha ao validar desafio no servidor:", err);
+        addLine("error", "⚠️ Erro ao verificar desafio. Tente novamente.");
+      } finally {
+        setIsValidating(false);
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentChallenge, isLevelDone, currentChallengeIndex, totalChallenges, currentLevel, level]
+    [currentChallenge, isLevelDone, isValidating, currentChallengeIndex, totalChallenges, currentLevel, level, doubleCoinsActive, submitChallenge]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -447,7 +468,8 @@ export default function Terminal({
               autoFocus
               spellCheck={false}
               autoComplete="off"
-              className="flex-1 bg-transparent outline-none text-sm"
+              disabled={isValidating}
+              className="flex-1 bg-transparent outline-none text-sm disabled:opacity-50"
               style={{
                 color: "#a8ff78",
                 caretColor: "#a8ff78",

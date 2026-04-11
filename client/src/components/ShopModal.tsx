@@ -6,7 +6,7 @@ interface ShopModalProps {
   coins: number;
   purchasedItems: ShopItemId[];
   consumableStock: Record<string, number>;
-  onBuy: (item: ShopItem) => void;
+  onBuy: (item: ShopItem) => void | Promise<void>;
   onClose: () => void;
 }
 

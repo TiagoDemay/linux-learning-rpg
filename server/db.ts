@@ -1,6 +1,6 @@
 import { desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, userProgress, InsertUserProgress, tournamentHistory, activeTournament, tournaments, tournamentParticipants } from "../drizzle/schema";
+import { InsertUser, users, userProgress, InsertUserProgress, tournamentHistory, activeTournament, tournaments, tournamentParticipants, securityEvents } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -68,6 +68,8 @@ export async function upsertUserProgress(data: {
   completedLevels: string[];
   currentLevel: string;
   challengeProgress: Record<string, number>;
+  purchasedItems?: string[];
+  consumableStock?: Record<string, number>;
 }) {
   const db = await getDb();
   if (!db) return;
@@ -81,6 +83,8 @@ export async function upsertUserProgress(data: {
         completedLevels: data.completedLevels,
         currentLevel: data.currentLevel,
         challengeProgress: data.challengeProgress,
+        ...(data.purchasedItems !== undefined && { purchasedItems: data.purchasedItems }),
+        ...(data.consumableStock !== undefined && { consumableStock: data.consumableStock }),
       })
       .where(eq(userProgress.userId, data.userId));
   } else {
@@ -91,8 +95,41 @@ export async function upsertUserProgress(data: {
       completedLevels: data.completedLevels,
       currentLevel: data.currentLevel,
       challengeProgress: data.challengeProgress,
+      purchasedItems: data.purchasedItems ?? [],
+      consumableStock: data.consumableStock ?? {},
     });
   }
+}
+
+/** Registra um evento de segurança (tentativa de manipulação bloqueada) */
+export async function logSecurityEvent(userId: number, type: string, details: Record<string, unknown>) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(securityEvents).values({ userId, type, details });
+  } catch (err) {
+    console.error("[SECURITY_LOG] Falha ao registrar evento:", err);
+  }
+}
+
+/** Retorna os eventos de segurança mais recentes — para o painel do professor */
+export async function getSecurityEvents(limit = 200) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: securityEvents.id,
+      userId: securityEvents.userId,
+      type: securityEvents.type,
+      details: securityEvents.details,
+      createdAt: securityEvents.createdAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(securityEvents)
+    .leftJoin(users, eq(users.id, securityEvents.userId))
+    .orderBy(desc(securityEvents.createdAt))
+    .limit(limit);
 }
 
 /** Retorna todos os alunos com progresso completo — para o painel do professor */

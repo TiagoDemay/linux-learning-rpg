@@ -89,6 +89,8 @@ export default function Home() {
 
   // tRPC: salvar progresso
   const saveProgressMutation = trpc.progress.save.useMutation();
+  // tRPC: comprar item da loja (server-side)
+  const shopBuyMutation = trpc.shop.buy.useMutation();
 
   // Sincronizar: quando carrega progresso do servidor, mesclar com localStorage
   const syncedRef = useRef(false);
@@ -211,24 +213,25 @@ export default function Home() {
   const handleViewChange = useCallback((newView: View) => { setView(newView); }, []);
   const handleBackToMap = useCallback(() => { setView("map"); }, []);
 
-  const handleBuyItem = useCallback((item: ShopItem) => {
-    setGameState((prev) => {
-      if (prev.coins < item.price) return prev;
-      const newCoins = prev.coins - item.price;
-      if (item.type === "permanent") {
-        if (prev.purchasedItems.includes(item.id as ShopItemId)) return prev;
-        return { ...prev, coins: newCoins, purchasedItems: [...prev.purchasedItems, item.id as ShopItemId] };
-      }
-      // consumable
-      const currentStock = prev.consumableStock[item.id] ?? 0;
-      if (item.maxStack && currentStock >= item.maxStack) return prev;
-      return {
+  const handleBuyItem = useCallback(async (item: ShopItem) => {
+    try {
+      const result = await shopBuyMutation.mutateAsync({
+        itemId: item.id,
+        currentCoins: gameState.coins,
+      });
+      // Atualiza o estado local com os dados retornados pelo servidor (fonte da verdade)
+      setGameState((prev) => ({
         ...prev,
-        coins: newCoins,
-        consumableStock: { ...prev.consumableStock, [item.id]: currentStock + 1 },
-      };
-    });
-  }, []);
+        coins: result.newCoins,
+        purchasedItems: result.newPurchasedItems as ShopItemId[],
+        consumableStock: result.newConsumableStock as Record<string, number>,
+      }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Shop] Falha ao comprar item:", msg);
+      alert(`Erro ao comprar: ${msg}`);
+    }
+  }, [shopBuyMutation, gameState.coins]);
 
 
   const resetGameMutation = trpc.professor.resetGame.useMutation();

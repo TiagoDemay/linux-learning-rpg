@@ -22,6 +22,10 @@ export const userProgress = mysqlTable("user_progress", {
   currentLevel: varchar("currentLevel", { length: 64 }).default("floresta-stallman").notNull(),
   /** Mapa levelId -> índice da próxima sub-tarefa (0 = não iniciado) */
   challengeProgress: json("challengeProgress").$type<Record<string, number>>().default({}).notNull(),
+  /** Lista de IDs de itens permanentes comprados na loja */
+  purchasedItems: json("purchasedItems").$type<string[]>().default([]).notNull(),
+  /** Mapa itemId -> quantidade em estoque de itens consumíveis */
+  consumableStock: json("consumableStock").$type<Record<string, number>>().default({}).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -84,9 +88,22 @@ export const activeTournament = mysqlTable("active_tournament", {
   startedAt: timestamp("startedAt").defaultNow().notNull(),
 });
 
+/**
+ * Eventos de segurança — registra tentativas de manipulação bloqueadas.
+ * Visível apenas para admin no painel do professor.
+ */
+export const securityEvents = mysqlTable("security_events", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 64 }).notNull(),
+  details: json("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserProgress = typeof userProgress.$inferSelect;
 export type InsertUserProgress = typeof userProgress.$inferInsert;
 export type TournamentHistory = typeof tournamentHistory.$inferSelect;
 export type InsertTournamentHistory = typeof tournamentHistory.$inferInsert;
+export type SecurityEvent = typeof securityEvents.$inferSelect;
