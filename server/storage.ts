@@ -83,9 +83,9 @@ export async function storagePut(
   });
 
   if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
+    await response.text().catch(() => "");
     throw new Error(
-      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
+      `Storage upload failed (${response.status} ${response.statusText})`
     );
   }
   const url = (await response.json()).url;
