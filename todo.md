@@ -224,3 +224,10 @@
 - [x] server/_core/index.ts: rate limiting challenge.submit (20/min), shop.buy (10/min)
 - [x] server/_core/cookies.ts: cookies httpOnly, sameSite, secure atualizados
 - [x] 126 testes passando após todas as correções
+
+## Aba de Auditoria no ProfessorPanel
+- [x] procedure professor.getSecurityEvents (com filtros userId, type, limit)
+- [x] Aba "Auditoria" no ProfessorPanel com tabela de eventos
+- [x] Filtro por tipo de evento e por nome de usuário
+- [x] Auto-refresh a cada 30 segundos
+- [x] Badge com contagem de eventos recentes no tab

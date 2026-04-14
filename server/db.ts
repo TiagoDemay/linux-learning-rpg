@@ -1,4 +1,4 @@
-import { desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, userProgress, InsertUserProgress, tournamentHistory, activeTournament, tournaments, tournamentParticipants, securityEvents } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -113,10 +113,13 @@ export async function logSecurityEvent(userId: number, type: string, details: Re
 }
 
 /** Retorna os eventos de segurança mais recentes — para o painel do professor */
-export async function getSecurityEvents(limit = 200) {
+export async function getSecurityEvents(limit = 200, filterUserId?: number, filterType?: string) {
   const db = await getDb();
   if (!db) return [];
-  return db
+  const conditions = [];
+  if (filterUserId !== undefined) conditions.push(eq(securityEvents.userId, filterUserId));
+  if (filterType) conditions.push(eq(securityEvents.type, filterType));
+  const query = db
     .select({
       id: securityEvents.id,
       userId: securityEvents.userId,
@@ -127,9 +130,11 @@ export async function getSecurityEvents(limit = 200) {
       userEmail: users.email,
     })
     .from(securityEvents)
-    .leftJoin(users, eq(users.id, securityEvents.userId))
-    .orderBy(desc(securityEvents.createdAt))
-    .limit(limit);
+    .leftJoin(users, eq(users.id, securityEvents.userId));
+  if (conditions.length > 0) {
+    return query.where(conditions.length === 1 ? conditions[0] : and(...conditions)).orderBy(desc(securityEvents.createdAt)).limit(limit);
+  }
+  return query.orderBy(desc(securityEvents.createdAt)).limit(limit);
 }
 
 /** Retorna todos os alunos com progresso completo — para o painel do professor */

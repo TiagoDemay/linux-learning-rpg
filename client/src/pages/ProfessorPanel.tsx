@@ -136,8 +136,16 @@ export default function ProfessorPanel() {
     { enabled: !!user && user.role === "admin" }
   );
 
-  const [activeTab, setActiveTab] = useState<"students" | "history" | "tournament">("students");
+  const [activeTab, setActiveTab] = useState<"students" | "history" | "tournament" | "audit">("students");
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+
+  // ── Auditoria de Segurança ──
+  const [auditTypeFilter, setAuditTypeFilter] = useState("");
+  const [auditUserFilter, setAuditUserFilter] = useState("");
+  const { data: securityEvents, isLoading: auditLoading, refetch: refetchAudit } = trpc.professor.getSecurityEvents.useQuery(
+    { limit: 300 },
+    { enabled: !!user && user.role === "admin", refetchInterval: 30000 }
+  );
 
   // Torneio ativo
   const { data: activeTournamentData, refetch: refetchActiveTournament } = trpc.professor.getActiveTournament.useQuery(
@@ -329,6 +337,20 @@ export default function ProfessorPanel() {
             }`}
           >
             🏆 Histórico {tournaments && tournaments.length > 0 ? `(${tournaments.length})` : ""}
+          </button>
+          <button
+            onClick={() => { setActiveTab("audit"); refetchAudit(); }}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-all ${
+              activeTab === "audit"
+                ? "bg-[#2c1a00] border border-b-0 border-amber-700/60 text-amber-300"
+                : "text-amber-600 hover:text-amber-400"
+            }`}
+          >
+            🛡️ Auditoria {securityEvents && securityEvents.length > 0 ? (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-red-900/60 text-red-300">
+                {securityEvents.length}
+              </span>
+            ) : ""}
           </button>
         </div>
 
@@ -767,6 +789,124 @@ export default function ProfessorPanel() {
           </div>
         )}
         </>) }
+
+        {activeTab === "audit" && (
+          <div className="space-y-4">
+            {/* Filtros */}
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 text-sm">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Filtrar por usuário..."
+                  value={auditUserFilter}
+                  onChange={(e) => setAuditUserFilter(e.target.value)}
+                  className="bg-[#2c1a00] border border-amber-800/50 rounded-lg pl-8 pr-4 py-2 text-amber-100 placeholder-amber-700 text-sm focus:outline-none focus:border-amber-500 transition-colors w-52"
+                />
+              </div>
+              <select
+                value={auditTypeFilter}
+                onChange={(e) => setAuditTypeFilter(e.target.value)}
+                className="bg-[#2c1a00] border border-amber-800/50 rounded-lg px-3 py-2 text-amber-100 text-sm focus:outline-none focus:border-amber-500 transition-colors"
+              >
+                <option value="">Todos os tipos</option>
+                {Array.from(new Set((securityEvents ?? []).map((e) => e.type))).sort().map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => refetchAudit()}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-amber-700/50 bg-amber-900/30 hover:bg-amber-800/40 text-amber-300 transition-colors"
+              >
+                🔄 Atualizar
+              </button>
+              <span className="text-amber-500/60 text-xs ml-auto">
+                Auto-refresh a cada 30s
+              </span>
+            </div>
+
+            {/* Tabela de eventos */}
+            <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">
+              {auditLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="text-amber-400 animate-pulse font-medieval text-lg">Carregando eventos...</div>
+                </div>
+              ) : (() => {
+                const filtered = (securityEvents ?? []).filter((ev) => {
+                  const matchUser = !auditUserFilter || (ev.userName ?? "").toLowerCase().includes(auditUserFilter.toLowerCase()) || (ev.userEmail ?? "").toLowerCase().includes(auditUserFilter.toLowerCase());
+                  const matchType = !auditTypeFilter || ev.type === auditTypeFilter;
+                  return matchUser && matchType;
+                });
+                if (filtered.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <span className="text-4xl">🛡️</span>
+                      <p className="text-amber-500/60 text-sm">
+                        {securityEvents?.length === 0 ? "Nenhum evento de segurança registrado." : "Nenhum evento corresponde aos filtros."}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="overflow-x-auto">
+                    <div className="px-4 py-2 border-b border-amber-900/30 flex items-center gap-2">
+                      <span className="text-amber-400/60 text-xs">{filtered.length} evento{filtered.length !== 1 ? "s" : ""} encontrado{filtered.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-amber-900/50 bg-[#1a0f00]/60">
+                          {["#", "📅 Data/Hora", "👤 Usuário", "🏷️ Tipo", "📋 Detalhes"].map((col) => (
+                            <th key={col} className="px-4 py-3 text-left text-amber-400/80 font-semibold tracking-wide text-xs">{col}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((ev) => {
+                          const typeColors: Record<string, string> = {
+                            PROGRESS_MANIPULATION: "bg-red-900/40 text-red-300 border-red-800/50",
+                            INVALID_COINS: "bg-orange-900/40 text-orange-300 border-orange-800/50",
+                            INVALID_LEVELS: "bg-yellow-900/40 text-yellow-300 border-yellow-800/50",
+                            SHOP_FRAUD: "bg-purple-900/40 text-purple-300 border-purple-800/50",
+                            CHALLENGE_FRAUD: "bg-pink-900/40 text-pink-300 border-pink-800/50",
+                          };
+                          const typeColor = typeColors[ev.type] ?? "bg-amber-900/40 text-amber-300 border-amber-800/50";
+                          return (
+                            <tr key={ev.id} className="border-b border-amber-900/20 hover:bg-amber-900/10 transition-colors">
+                              <td className="px-4 py-3 text-amber-600/60 font-mono text-xs">{ev.id}</td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="text-amber-300 text-xs">{timeAgo(ev.createdAt)}</div>
+                                <div className="text-amber-600/50 text-xs">{formatDate(ev.createdAt)}</div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <Avatar name={ev.userName ?? "?"} />
+                                  <div>
+                                    <div className="text-amber-200 text-xs font-semibold">{ev.userName ?? "Usuário #" + ev.userId}</div>
+                                    {ev.userEmail && <div className="text-amber-600/50 text-xs">{ev.userEmail}</div>}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-0.5 rounded border text-xs font-mono font-semibold ${typeColor}`}>
+                                  {ev.type}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 max-w-xs">
+                                <pre className="text-amber-400/70 text-xs whitespace-pre-wrap break-all font-mono bg-black/20 rounded p-1.5">
+                                  {ev.details ? JSON.stringify(ev.details, null, 2) : "—"}
+                                </pre>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {activeTab === "history" && (
           <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">

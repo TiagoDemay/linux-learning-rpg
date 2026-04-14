@@ -403,10 +403,14 @@ export const appRouter = router({
 
     /** Retorna os eventos de segurança mais recentes — exclusivo para admin */
     getSecurityEvents: protectedProcedure
-      .input(z.object({ limit: z.number().min(1).max(500).default(200) }).optional())
+      .input(z.object({
+        limit: z.number().min(1).max(500).default(200),
+        userId: z.number().optional(),
+        type: z.string().optional(),
+      }).optional())
       .query(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
-        return getSecurityEvents(input?.limit ?? 200);
+        return getSecurityEvents(input?.limit ?? 200, input?.userId, input?.type);
       }),
   }),
 
