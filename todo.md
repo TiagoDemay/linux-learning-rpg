@@ -261,3 +261,10 @@
 - [ ] Testar boot do Alpine Linux no browser e ajustar inittab/auto-login
 - [ ] Testar os 10 desafios da Floresta de Stallman no terminal emulado
 - [ ] Ajustar challenge-answers.ts para comandos reais se necessário
+
+## Correção Terminal v86 (Boot Rápido)
+- [x] Recriar imagem Alpine com init=/init-game.sh (sem openrc) para boot em 3-8s
+- [x] Configurar .bashrc com prompt aventureiro@terras-do-kernel e mensagem de boas-vindas
+- [x] Upload nova imagem para CDN: alpine-disk-v2.img_adaa3c25.gz (20MB)
+- [x] Atualizar V86Terminal.tsx com init=/init-game.sh, barra de progresso melhorada e detecção de prompt
+- [ ] Testar boot no browser e confirmar que o terminal abre em <15s

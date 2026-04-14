@@ -1,14 +1,14 @@
 /**
  * V86Terminal — Terminal Linux real rodando Alpine Linux 3.19 via WebAssembly (v86)
  *
- * Usa uma imagem de disco ext2 com Alpine Linux completo (bash, git, curl, grep, etc.)
- * e auto-login do usuário "aventureiro". O v86 emula um CPU x86 em WASM no browser.
+ * Usa init=/bin/bash para boot em 3-8 segundos (sem OpenRC/systemd).
+ * Imagem ext2 com Alpine completo: bash, git, curl, grep, awk, sed, find, tar, chmod, etc.
  *
  * CDN assets:
- *   - vmlinuz.bin        — kernel Linux Alpine 3.19 x86 (7 MB)
- *   - alpine-disk.img.gz — disco ext2 com Alpine completo (20 MB comprimido)
- *   - v86.wasm           — emulador x86 compilado em WebAssembly (2 MB)
- *   - libv86.js          — wrapper JS do v86 (329 KB)
+ *   - vmlinuz.bin          — kernel Linux Alpine 3.19 x86 (7 MB)
+ *   - alpine-disk-v2.img.gz — disco ext2 com Alpine + init=/bin/bash (20 MB comprimido)
+ *   - v86.wasm             — emulador x86 compilado em WebAssembly (2 MB)
+ *   - libv86.js            — wrapper JS do v86 (329 KB)
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -16,11 +16,30 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 
-// URLs CDN dos assets do v86 (geradas pelo manus-upload-file --webdev)
+// URLs CDN dos assets do v86
 const VMLINUZ_URL  = "https://d2xsxph8kpxj0f.cloudfront.net/310519663063764281/TSiRdqLfDbHcFkVjrjk85H/vmlinuz_ddb295c8.bin";
-const DISK_URL     = "https://d2xsxph8kpxj0f.cloudfront.net/310519663063764281/TSiRdqLfDbHcFkVjrjk85H/alpine-disk.img_e18d6a58.gz";
+const DISK_URL     = "https://d2xsxph8kpxj0f.cloudfront.net/310519663063764281/TSiRdqLfDbHcFkVjrjk85H/alpine-disk-v2.img_adaa3c25.gz";
 const V86_WASM_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663063764281/TSiRdqLfDbHcFkVjrjk85H/v86_907393d9.wasm";
 const LIBV86_URL   = "https://d2xsxph8kpxj0f.cloudfront.net/310519663063764281/TSiRdqLfDbHcFkVjrjk85H/libv86_fb445525.js";
+
+// Parâmetros do kernel para boot rápido com init=/bin/bash
+// - init=/init-game.sh: executa nosso script de inicialização diretamente
+// - console=ttyS0: redireciona console para porta serial (xterm.js)
+// - quiet loglevel=0: suprime mensagens de boot do kernel
+const KERNEL_CMDLINE = [
+  "console=ttyS0",
+  "root=/dev/sda",
+  "rw",
+  "init=/init-game.sh",
+  "quiet",
+  "loglevel=0",
+  "TERM=xterm-256color",
+].join(" ");
+
+// Tempo máximo de boot em ms (init=/bin/bash deve bootar em 3-8s, damos 15s de margem)
+const BOOT_TIMEOUT_MS = 15000;
+// String que indica que o prompt está pronto (aparece no .bashrc)
+const PROMPT_READY_MARKER = "aventureiro@terras-do-kernel";
 
 interface V86TerminalProps {
   /** Chamado sempre que o usuário pressiona Enter com um comando */
@@ -58,7 +77,7 @@ function loadLibV86(): Promise<void> {
     const script = document.createElement("script");
     script.src = LIBV86_URL;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Falha ao carregar libv86.js"));
+    script.onerror = () => reject(new Error("Falha ao carregar libv86.js do CDN"));
     document.head.appendChild(script);
   });
   return libv86LoadPromise;
@@ -104,6 +123,9 @@ export default function V86Terminal({
   const fitAddonRef = useRef<FitAddon | null>(null);
   const emulatorRef = useRef<unknown>(null);
   const commandHistoryRef = useRef<string[]>([]);
+  const bootReadyRef = useRef(false);
+  const outputBufferRef = useRef("");
+
   const [progress, setProgress] = useState<LoadProgress>({
     stage: "idle",
     percent: 0,
@@ -121,6 +143,7 @@ export default function V86Terminal({
     if (!containerRef.current) return;
 
     let destroyed = false;
+    let bootTimeout: ReturnType<typeof setTimeout> | null = null;
 
     // Inicializar xterm.js
     const xterm = new XTerm({
@@ -175,9 +198,9 @@ export default function V86Terminal({
         if (destroyed) return;
 
         // 2. Baixar kernel Alpine (7 MB)
-        updateProgress("loading-kernel", 10, "Baixando kernel Linux Alpine (7 MB)...");
+        updateProgress("loading-kernel", 10, "Baixando kernel Linux (7 MB)...");
         const vmlinuz = await fetchWithProgress(VMLINUZ_URL, (p) => {
-          updateProgress("loading-kernel", 10 + Math.round(p * 0.25), `Kernel: ${p}%`);
+          updateProgress("loading-kernel", 10 + Math.round(p * 0.25), `Kernel Linux: ${p}%`);
         });
         if (destroyed) return;
 
@@ -192,8 +215,8 @@ export default function V86Terminal({
         });
         if (destroyed) return;
 
-        // 4. Boot
-        updateProgress("booting", 92, "Iniciando Alpine Linux...");
+        // 4. Boot com init=/bin/bash (rápido: 3-8 segundos)
+        updateProgress("booting", 92, "Iniciando Linux... (aguarde ~5 segundos)");
 
         const V86Constructor = (window as unknown as Record<string, unknown>)["V86"] as new (config: unknown) => unknown;
 
@@ -201,23 +224,12 @@ export default function V86Terminal({
           wasm_path: V86_WASM_URL,
           memory_size: 256 * 1024 * 1024, // 256 MB RAM
           vga_memory_size: 2 * 1024 * 1024,
-          // Kernel Alpine
           bzimage: { buffer: vmlinuz },
-          // Disco ext2 com Alpine completo (comprimido com gzip)
           hda: {
             buffer: diskGz,
             async: false,
           },
-          // Linha de comando do kernel: boot do disco, auto-login
-          cmdline: [
-            "console=ttyS0",
-            "root=/dev/sda",
-            "rw",
-            "init=/sbin/init",
-            "quiet",
-            "loglevel=0",
-            "TERM=xterm-256color",
-          ].join(" "),
+          cmdline: KERNEL_CMDLINE,
           autostart: true,
           disable_keyboard: true,
           serial_container_xtermjs: xterm,
@@ -225,9 +237,26 @@ export default function V86Terminal({
 
         emulatorRef.current = emulator;
 
+        // Capturar output do terminal para detectar quando o prompt está pronto
+        const originalWrite = xterm.write.bind(xterm);
+        (xterm as unknown as Record<string, unknown>).write = (data: string | Uint8Array) => {
+          const text = typeof data === "string" ? data : new TextDecoder().decode(data);
+          outputBufferRef.current += text;
+          // Manter apenas os últimos 500 caracteres no buffer
+          if (outputBufferRef.current.length > 500) {
+            outputBufferRef.current = outputBufferRef.current.slice(-500);
+          }
+          // Detectar prompt do aventureiro
+          if (!bootReadyRef.current && outputBufferRef.current.includes(PROMPT_READY_MARKER)) {
+            bootReadyRef.current = true;
+            if (bootTimeout) clearTimeout(bootTimeout);
+            updateProgress("ready", 100, "Terminal pronto!");
+          }
+          return originalWrite(data);
+        };
+
         // Capturar comandos digitados pelo usuário
         let inputBuffer = "";
-        let bootReady = false;
 
         xterm.onData((data) => {
           // Enviar para o emulador via serial
@@ -235,61 +264,28 @@ export default function V86Terminal({
 
           if (data === "\r" || data === "\n") {
             const cmd = inputBuffer.trim();
-            if (cmd && bootReady) {
+            if (cmd && bootReadyRef.current) {
               commandHistoryRef.current = [cmd, ...commandHistoryRef.current.slice(0, 199)];
               onCommand(cmd, [...commandHistoryRef.current]);
             }
             inputBuffer = "";
           } else if (data === "\x7f" || data === "\x08") {
-            // Backspace
             if (inputBuffer.length > 0) {
               inputBuffer = inputBuffer.slice(0, -1);
             }
           } else if (data.charCodeAt(0) >= 32) {
-            // Caractere imprimível
             inputBuffer += data;
           }
         });
 
-        // Detectar quando o boot está completo (prompt do aventureiro aparece)
-        // O Alpine leva ~20-30s para bootar no v86 com disco ext2
-        const bootCheckInterval = setInterval(() => {
-          if (destroyed) {
-            clearInterval(bootCheckInterval);
-            return;
-          }
-          // Verificar se o terminal tem output (boot progredindo)
-        }, 1000);
+        // Timeout de segurança: se o prompt não aparecer em BOOT_TIMEOUT_MS, liberar mesmo assim
+        bootTimeout = setTimeout(() => {
+          if (destroyed || bootReadyRef.current) return;
+          console.warn("[V86Terminal] Timeout de boot — liberando terminal");
+          bootReadyRef.current = true;
+          updateProgress("ready", 100, "Terminal pronto!");
+        }, BOOT_TIMEOUT_MS);
 
-        // Timeout de boot: após 30s, considerar pronto
-        const bootTimeout = setTimeout(() => {
-          if (destroyed) return;
-          clearInterval(bootCheckInterval);
-          bootReady = true;
-          updateProgress("ready", 100, "Alpine Linux pronto!");
-
-          // Exibir mensagens de boas-vindas do jogo após o prompt aparecer
-          if (welcomeLines.length > 0) {
-            setTimeout(() => {
-              if (destroyed) return;
-              // Limpar a tela e exibir boas-vindas
-              (emulator as Record<string, (s: string) => void>)["serial0_send"]?.("clear\r");
-              setTimeout(() => {
-                if (destroyed) return;
-                welcomeLines.forEach((line) => {
-                  (emulator as Record<string, (s: string) => void>)["serial0_send"]?.(
-                    `echo '${line.replace(/'/g, "'\\''")}'` + "\r"
-                  );
-                });
-              }, 500);
-            }, 2000);
-          }
-        }, 30000);
-
-        return () => {
-          clearTimeout(bootTimeout);
-          clearInterval(bootCheckInterval);
-        };
       } catch (err) {
         if (destroyed) return;
         console.error("[V86Terminal] Erro ao inicializar:", err);
@@ -299,6 +295,7 @@ export default function V86Terminal({
 
     return () => {
       destroyed = true;
+      if (bootTimeout) clearTimeout(bootTimeout);
       resizeObserver.disconnect();
       if (emulatorRef.current) {
         try {
@@ -317,12 +314,13 @@ export default function V86Terminal({
 
   return (
     <div className="relative flex flex-col w-full" style={{ height: height ?? "100%" }}>
-      {/* Barra de progresso de carregamento */}
+      {/* Overlay de carregamento */}
       {isLoading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0d1117] rounded-lg border border-[#30363d]">
-          {/* Logo animado */}
+          {/* Ícone animado */}
           <div className="mb-6 text-5xl animate-pulse">🐧</div>
-          <div className="text-[#58a6ff] font-mono text-sm mb-2 font-semibold">
+
+          <div className="text-[#58a6ff] font-mono text-sm mb-1 font-semibold">
             Alpine Linux 3.19 — Terras do Kernel
           </div>
           <div className="text-[#8b949e] font-mono text-xs mb-6 text-center px-8">
@@ -332,16 +330,38 @@ export default function V86Terminal({
           {/* Barra de progresso */}
           <div className="w-64 bg-[#21262d] rounded-full h-2 mb-3 overflow-hidden">
             <div
-              className="h-2 rounded-full bg-gradient-to-r from-[#58a6ff] to-[#3fb950] transition-all duration-300"
+              className="h-2 rounded-full bg-gradient-to-r from-[#58a6ff] to-[#3fb950] transition-all duration-500"
               style={{ width: `${progress.percent}%` }}
             />
           </div>
           <div className="text-[#6e7681] font-mono text-xs">{progress.percent}%</div>
 
+          {/* Etapas de carregamento */}
+          <div className="mt-6 flex flex-col gap-1 text-xs font-mono">
+            {[
+              { stage: "loading-script", label: "Emulador WebAssembly" },
+              { stage: "loading-kernel", label: "Kernel Linux (7 MB)" },
+              { stage: "loading-disk",   label: "Sistema Alpine (20 MB)" },
+              { stage: "booting",        label: "Boot (init=/bin/bash)" },
+            ].map(({ stage, label }) => {
+              const stages: LoadingStage[] = ["loading-script", "loading-kernel", "loading-disk", "booting", "ready"];
+              const currentIdx = stages.indexOf(progress.stage);
+              const itemIdx = stages.indexOf(stage as LoadingStage);
+              const isDone = currentIdx > itemIdx;
+              const isCurrent = currentIdx === itemIdx;
+              return (
+                <div key={stage} className={`flex items-center gap-2 ${isDone ? "text-[#3fb950]" : isCurrent ? "text-[#58a6ff]" : "text-[#6e7681]"}`}>
+                  <span>{isDone ? "✓" : isCurrent ? "▶" : "○"}</span>
+                  <span>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+
           {/* Aviso de primeira vez */}
-          {progress.percent < 80 && (
-            <div className="mt-6 text-[#6e7681] font-mono text-xs text-center px-8 max-w-xs">
-              ⏳ Primeira execução: ~30s para baixar o sistema Linux.
+          {progress.stage === "loading-disk" && (
+            <div className="mt-4 text-[#6e7681] font-mono text-xs text-center px-8 max-w-xs">
+              ⏳ Primeira execução: ~30s para baixar.
               <br />
               Nas próximas vezes o browser fará cache automaticamente.
             </div>
@@ -354,7 +374,7 @@ export default function V86Terminal({
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0d1117] rounded-lg border border-red-800">
           <div className="text-4xl mb-4">❌</div>
           <div className="text-red-400 font-mono text-sm mb-2">Falha ao inicializar o terminal</div>
-          <div className="text-[#8b949e] font-mono text-xs text-center px-8">
+          <div className="text-[#8b949e] font-mono text-xs text-center px-8 max-w-xs">
             {progress.message}
           </div>
           <button
