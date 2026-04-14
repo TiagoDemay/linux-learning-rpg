@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { trpc } from "../lib/trpc";
-import { executeCommand, getPrompt, type VFSState } from "../lib/terminal-logic";
-import { getLevelTaskGroup, getChallenge, getChallengeCount } from "../data/tasks";
+import { getPrompt, type VFSState } from "../lib/terminal-logic";
+import { getChallenge, getChallengeCount } from "../data/tasks";
 import { getLevelById } from "../data/levels";
 import type { ShopItemId } from "../data/shop-items";
+import V86Terminal from "./V86Terminal";
 
 interface TerminalLine {
   id: number;
@@ -72,7 +73,6 @@ export default function Terminal({
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const level = getLevelById(currentLevel);
-  const taskGroup = getLevelTaskGroup(currentLevel);
   const totalChallenges = getChallengeCount(currentLevel);
   const currentChallengeIndex = challengeProgress[currentLevel] ?? 0;
   const currentChallenge = getChallenge(currentLevel, currentChallengeIndex);
@@ -199,32 +199,10 @@ export default function Terminal({
         return;
       }
 
-      // Simulate ps / top / sudo / apt / less / nano locally
-      const simulated = simulateExtraCommands(cmd, purchasedItems.includes("man-extended"));
-      if (simulated !== null) {
-        simulated.split("\n").forEach((line) => addLine("output", line));
-        // ps/top/sudo/apt don't change VFS — just check task completion
-        void checkChallengeCompletion(cmd, vfs, [cmd, ...commandHistory]);
-        return;
-      }
-
-      const result = executeCommand(cmd, vfs);
-
-      if (result.output === "\x1b[CLEAR]") {
-        setLines([]);
-        onVFSChange(result.newState);
-        return;
-      }
-
-      if (result.output) {
-        result.output.split("\n").forEach((line) => addLine("output", line));
-      }
-      if (result.error) {
-        result.error.split("\n").forEach((line) => addLine("error", line));
-      }
-
-      onVFSChange(result.newState);
-      void checkChallengeCompletion(cmd, result.newState, [cmd, ...commandHistory]);
+      // No modo V86 (terminal real), o handleSubmit não é usado para execução
+      // — os comandos são capturados pelo V86Terminal via onCommand.
+      // Este bloco é mantido apenas para compatibilidade com o modo legado.
+      void checkChallengeCompletion(cmd, vfs, [cmd, ...commandHistory]);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [input, vfs, currentChallenge, isLevelDone, isValidating, commandHistory, currentLevel, currentChallengeIndex, totalChallenges]
@@ -419,13 +397,9 @@ export default function Terminal({
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Terminal output */}
-        <div
-          className="flex-1 overflow-y-auto p-4 cursor-text"
-          style={{ background: "#0d1117", minWidth: 0 }}
-          onClick={() => inputRef.current?.focus()}
-        >
+        <div className="flex flex-1 overflow-hidden">
+        {/* Terminal real — Alpine Linux via v86 WebAssembly */}
+        <div className="flex-1 overflow-hidden relative" style={{ background: "#0d1117", minWidth: 0 }}>
           {sparkles && (
             <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
               <div className="text-6xl animate-bounce">🎉</div>
@@ -446,47 +420,43 @@ export default function Terminal({
             </div>
           )}
 
-          {lines.map((line) => (
-            <div key={line.id} className="flex items-start gap-1 leading-5 text-sm">
-              {line.type === "input" && line.prompt && (
-                <span style={{ color: "#a8ff78", flexShrink: 0 }}>{line.prompt} </span>
-              )}
-              <span
-                style={{
-                  color: getLineColor(line.type),
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                  fontWeight: line.type === "success" ? "bold" : "normal",
-                }}
-              >
-                {line.content}
-              </span>
+          {/* Overlay de sucesso de desafio */}
+          {lines.filter(l => l.type === "success").slice(-5).map((line) => (
+            <div
+              key={line.id}
+              className="absolute bottom-4 left-4 right-4 z-20 px-3 py-2 rounded text-sm font-bold"
+              style={{
+                background: "rgba(39,174,96,0.95)",
+                color: "#fff",
+                border: "1px solid #27ae60",
+                pointerEvents: "none",
+              }}
+            >
+              {line.content}
             </div>
           ))}
 
-          {/* Input line */}
-          <form onSubmit={handleSubmit} className="flex items-center gap-1 mt-1">
-            <span style={{ color: "#a8ff78", flexShrink: 0, fontSize: "0.875rem" }}>
-              {getPrompt(vfs)}{" "}
-            </span>
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-              spellCheck={false}
-              autoComplete="off"
-              disabled={isValidating}
-              className="flex-1 bg-transparent outline-none text-sm disabled:opacity-50"
-              style={{
-                color: "#a8ff78",
-                caretColor: "#a8ff78",
-                fontFamily: "'Courier New', monospace",
-              }}
-            />
-          </form>
-          <div ref={bottomRef} />
+          <V86Terminal
+            onCommand={(cmd, history) => {
+              void checkChallengeCompletion(cmd, vfs, history);
+            }}
+            welcomeLines={[
+              `╔══════════════════════════════════════════════════════╗`,
+              `║     Ubuntu 24.04 LTS - Terras do Kernel              ║`,
+              `║     ${level?.icon ?? ""} ${(level?.name ?? "").padEnd(46)}║`,
+              `╚══════════════════════════════════════════════════════╝`,
+              ``,
+              `Bem-vindo! Você chegou a: ${level?.name ?? ""}`,
+              isLevelDone
+                ? `✅ Todos os desafios concluídos! Explore à vontade.`
+                : currentChallenge
+                ? `📜 DESAFIO ${currentChallengeIndex + 1}/${totalChallenges}: ${currentChallenge.title}`
+                : `Explore este território livremente.`,
+              ``,
+              `Digite 'help' para ver os comandos disponíveis.`,
+            ]}
+            height={undefined}
+          />
         </div>
 
         {/* Task panel */}

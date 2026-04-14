@@ -247,3 +247,17 @@
 - [x] Aumentar CHALLENGE_MAX_ATTEMPTS_PER_WINDOW para 100 (100 tentativas por 10 minutos por desafio)
 - [x] Aumentar rate limit HTTP de challenge.submit para 120/min
 - [x] Corrigir catch do Terminal.tsx: ignorar TOO_MANY_REQUESTS silenciosamente (não exibir erro ao aluno)
+
+## Terminal Linux Real (WebAssembly v86)
+- [x] Avaliar abordagem técnica: v86 selecionado (Alpine Linux 3.19 x86 em WASM)
+- [x] Construir imagem Alpine 3.19 x86 com git, bash, curl, grep, awk, sed, find, tar, gzip, openssh, util-linux, procps, nano, less, net-tools, openrc, sudo, shadow
+- [x] Configurar usuário aventureiro com auto-login e prompt do jogo
+- [x] Criar imagem ext2 de 512MB (comprimida para 20MB com gzip)
+- [x] Upload CDN: vmlinuz (7MB), alpine-disk.img.gz (20MB), v86.wasm (2MB), libv86.js (329KB)
+- [x] Instalar dependências: @xterm/xterm, @xterm/addon-fit, v86 (já presentes no projeto)
+- [x] Criar componente V86Terminal.tsx com v86 + xterm.js + barra de progresso
+- [x] Integrar V86Terminal no Terminal.tsx substituindo terminal VFS simulado
+- [x] Capturar histórico de comandos reais e enviar ao challenge.submit
+- [ ] Testar boot do Alpine Linux no browser e ajustar inittab/auto-login
+- [ ] Testar os 10 desafios da Floresta de Stallman no terminal emulado
+- [ ] Ajustar challenge-answers.ts para comandos reais se necessário
