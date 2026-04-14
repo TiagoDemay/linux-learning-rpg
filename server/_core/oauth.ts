@@ -1,5 +1,6 @@
-import { BLOCKED_ERR_MSG, COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { BLOCKED_ERR_MSG, COOKIE_NAME, OAUTH_STATE_COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
+import { parse as parseCookieHeader } from "cookie";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
@@ -20,6 +21,29 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
+      const parsedCookies = parseCookieHeader(req.headers.cookie ?? "");
+      const stateNonceCookie = parsedCookies[OAUTH_STATE_COOKIE_NAME];
+      let parsedState: { redirectUri: string; nonce: string };
+      try {
+        parsedState = sdk.parseOAuthState(state);
+      } catch {
+        res.clearCookie(OAUTH_STATE_COOKIE_NAME, { path: "/" });
+        res.status(400).json({ error: "invalid oauth state" });
+        return;
+      }
+      const nonceMatches =
+        typeof stateNonceCookie === "string" &&
+        stateNonceCookie.length > 0 &&
+        parsedState.nonce === stateNonceCookie;
+
+      // one-time use (best effort even on invalid attempts)
+      res.clearCookie(OAUTH_STATE_COOKIE_NAME, { path: "/" });
+
+      if (!nonceMatches) {
+        res.status(400).json({ error: "invalid oauth state" });
+        return;
+      }
+
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
 
