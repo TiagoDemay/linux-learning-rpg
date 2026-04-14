@@ -136,8 +136,13 @@ export default function ProfessorPanel() {
     { enabled: !!user && user.role === "admin" }
   );
 
-  const [activeTab, setActiveTab] = useState<"students" | "history" | "tournament">("students");
+  const [activeTab, setActiveTab] = useState<"students" | "history" | "tournament" | "security">("students");
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+  const { data: securityEvents, refetch: refetchSecurityEvents, isLoading: loadingSecurityEvents } =
+    trpc.professor.getSecurityEvents.useQuery(
+      { limit: 200 },
+      { enabled: !!user && user.role === "admin" }
+    );
 
   // Torneio ativo
   const { data: activeTournamentData, refetch: refetchActiveTournament } = trpc.professor.getActiveTournament.useQuery(
@@ -329,6 +334,16 @@ export default function ProfessorPanel() {
             }`}
           >
             🏆 Histórico {tournaments && tournaments.length > 0 ? `(${tournaments.length})` : ""}
+          </button>
+          <button
+            onClick={() => { setActiveTab("security"); refetchSecurityEvents(); }}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-all ${
+              activeTab === "security"
+                ? "bg-[#2c1a00] border border-b-0 border-amber-700/60 text-amber-300"
+                : "text-amber-600 hover:text-amber-400"
+            }`}
+          >
+            🛡️ Segurança {securityEvents && securityEvents.length > 0 ? `(${securityEvents.length})` : ""}
           </button>
         </div>
 
@@ -581,7 +596,7 @@ export default function ProfessorPanel() {
                       student.completedCount * totalChallengesPerLevel;
 
                     return (
-                      <Fragment key={student.name ?? i}>
+                      <Fragment key={student.userId ?? i}>
                         <tr
                           className={`border-b border-amber-900/20 transition-colors ${
                             isExpanded
@@ -879,6 +894,54 @@ export default function ProfessorPanel() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === "security" && (
+          <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-amber-900/30 flex items-center justify-between">
+              <h3 className="font-medieval text-amber-300">Eventos de Segurança</h3>
+              <button
+                onClick={() => refetchSecurityEvents()}
+                className="px-3 py-1 text-xs rounded-lg border border-amber-700/50 text-amber-300 hover:bg-amber-900/20"
+              >
+                Atualizar
+              </button>
+            </div>
+            {loadingSecurityEvents ? (
+              <div className="p-6 text-amber-400/70 text-sm">Carregando eventos...</div>
+            ) : !securityEvents || securityEvents.length === 0 ? (
+              <div className="p-6 text-amber-500/70 text-sm">Nenhum evento de segurança registrado.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-amber-900/30 text-amber-500/70">
+                      <th className="px-4 py-2 text-left">Data/Hora</th>
+                      <th className="px-4 py-2 text-left">Tipo</th>
+                      <th className="px-4 py-2 text-left">Usuário</th>
+                      <th className="px-4 py-2 text-left">E-mail</th>
+                      <th className="px-4 py-2 text-left">Detalhes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {securityEvents.map((event) => (
+                      <tr key={event.id} className="border-b border-amber-900/20 align-top">
+                        <td className="px-4 py-2 text-amber-400/80 whitespace-nowrap">{formatDate(event.createdAt)}</td>
+                        <td className="px-4 py-2 text-amber-200">{event.type}</td>
+                        <td className="px-4 py-2 text-amber-300">{event.userName ?? "—"}</td>
+                        <td className="px-4 py-2 text-amber-500/80">{event.userEmail ?? "—"}</td>
+                        <td className="px-4 py-2 text-xs text-amber-300/80 max-w-[520px]">
+                          <pre className="whitespace-pre-wrap break-words">
+                            {JSON.stringify(event.details ?? {}, null, 2)}
+                          </pre>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -9,6 +9,27 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { URL } from "url";
+
+function getTrustProxyConfig(): boolean | number | string {
+  const raw = process.env.TRUST_PROXY?.trim();
+  if (!raw) return 1;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  return raw;
+}
+
+function getAllowedCsrfOrigins() {
+  const raw = process.env.CSRF_ALLOWED_ORIGINS?.trim();
+  if (!raw) return new Set<string>();
+  return new Set(
+    raw
+      .split(",")
+      .map(v => v.trim())
+      .filter(Boolean)
+  );
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -58,10 +79,30 @@ async function startServer() {
   const server = createServer(app);
 
   // Trust proxy — necessário para rate limiting funcionar corretamente em produção
-  app.set("trust proxy", 1);
+  app.set("trust proxy", getTrustProxyConfig());
 
   // Security headers
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === "development"
+          ? false
+          : {
+              directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", "data:", "https:"],
+                connectSrc: ["'self'", "https:"],
+                fontSrc: ["'self'", "data:"],
+                objectSrc: ["'none'"],
+                baseUri: ["'self'"],
+                formAction: ["'self'"],
+                frameAncestors: ["'none'"],
+              },
+            },
+    })
+  );
 
   // Body parser — 1mb is sufficient for game state JSON
   app.use(express.json({ limit: "1mb" }));
@@ -103,11 +144,61 @@ async function startServer() {
     legacyHeaders: false,
     message: { error: "Limite de compras atingido. Aguarde 1 minuto." },
   });
+  const logoutLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de logout atingido. Aguarde 1 minuto." },
+  });
 
   app.use("/api/trpc", generalLimiter);
   app.use("/api/trpc/progress.save", saveLimiter);
   app.use("/api/trpc/challenge.submit", submitLimiter);
   app.use("/api/trpc/shop.buy", shopLimiter);
+  app.use("/api/trpc/auth.logout", logoutLimiter);
+
+  const oauthCallbackLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de tentativas no OAuth callback atingido." },
+  });
+  app.use("/api/oauth/callback", oauthCallbackLimiter);
+
+  const csrfAllowedOrigins = getAllowedCsrfOrigins();
+  app.use("/api/trpc", (req, res, next) => {
+    if (process.env.NODE_ENV === "test") return next();
+    const method = req.method.toUpperCase();
+    if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+      return next();
+    }
+
+    const host = req.get("host");
+    const origin = req.get("origin");
+    const referer = req.get("referer");
+    const allowOrigin = (candidate: string | undefined) => {
+      if (!candidate) return false;
+      try {
+        const parsed = new URL(candidate);
+        const normalizedOrigin = `${parsed.protocol}//${parsed.host}`;
+        if (csrfAllowedOrigins.size > 0) {
+          return csrfAllowedOrigins.has(normalizedOrigin);
+        }
+        if (!host) return false;
+        return parsed.host === host;
+      } catch {
+        return false;
+      }
+    };
+
+    if (allowOrigin(origin) || allowOrigin(referer)) {
+      return next();
+    }
+
+    return res.status(403).json({ error: "CSRF validation failed" });
+  });
 
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
