@@ -123,8 +123,12 @@ export default function ProfessorPanel() {
   const [sortAsc, setSortAsc] = useState(true);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
+  // ── Paginação de alunos ──
+  const PAGE_SIZE_STUDENTS = 50;
+  const [studentsPage, setStudentsPage] = useState(0);
+
   const { data: students, isLoading, error, refetch } = trpc.professor.getStudents.useQuery(
-    undefined,
+    { limit: PAGE_SIZE_STUDENTS, offset: studentsPage * PAGE_SIZE_STUDENTS },
     {
       enabled: !!user && user.role === "admin",
       refetchInterval: 30000, // auto-refresh every 30s
@@ -142,8 +146,10 @@ export default function ProfessorPanel() {
   // ── Auditoria de Segurança ──
   const [auditTypeFilter, setAuditTypeFilter] = useState("");
   const [auditUserFilter, setAuditUserFilter] = useState("");
+  const PAGE_SIZE_AUDIT = 50;
+  const [auditPage, setAuditPage] = useState(0);
   const { data: securityEvents, isLoading: auditLoading, refetch: refetchAudit } = trpc.professor.getSecurityEvents.useQuery(
-    { limit: 300 },
+    { limit: PAGE_SIZE_AUDIT, offset: auditPage * PAGE_SIZE_AUDIT },
     { enabled: !!user && user.role === "admin", refetchInterval: 30000 }
   );
 
@@ -786,10 +792,31 @@ export default function ProfessorPanel() {
                 </tbody>
               </table>
             </div>
+            {/* Controles de paginação de alunos */}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-amber-900/30">
+              <span className="text-amber-500/60 text-xs">
+                Página {studentsPage + 1} &middot; {filtered.length} aluno{filtered.length !== 1 ? "s" : ""} nesta página
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setStudentsPage((p) => Math.max(0, p - 1)); setExpandedRow(null); }}
+                  disabled={studentsPage === 0}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-800/50 bg-amber-900/20 hover:bg-amber-800/30 text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Anterior
+                </button>
+                <button
+                  onClick={() => { setStudentsPage((p) => p + 1); setExpandedRow(null); }}
+                  disabled={filtered.length < PAGE_SIZE_STUDENTS}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-800/50 bg-amber-900/20 hover:bg-amber-800/30 text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Próxima →
+                </button>
+              </div>
+            </div>
           </div>
         )}
         </>) }
-
         {activeTab === "security" && (
           <div className="space-y-4">
             {/* Filtros */}
@@ -901,13 +928,34 @@ export default function ProfessorPanel() {
                         })}
                       </tbody>
                     </table>
-                  </div>
+                    {/* Controles de paginação de auditoria */}
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-amber-900/30">
+                      <span className="text-amber-500/60 text-xs">
+                        Página {auditPage + 1} &middot; {securityEvents?.length ?? 0} evento{(securityEvents?.length ?? 0) !== 1 ? "s" : ""} nesta página
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setAuditPage((p) => Math.max(0, p - 1))}
+                          disabled={auditPage === 0}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-800/50 bg-amber-900/20 hover:bg-amber-800/30 text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          ← Anterior
+                        </button>
+                        <button
+                          onClick={() => setAuditPage((p) => p + 1)}
+                          disabled={(securityEvents?.length ?? 0) < PAGE_SIZE_AUDIT}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-800/50 bg-amber-900/20 hover:bg-amber-800/30 text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Próxima →
+                        </button>
+                      </div>
+                    </div>
+                   </div>
                 );
               })()}
             </div>
           </div>
         )}
-
         {activeTab === "history" && (
           <div className="bg-[#2c1a00] border border-amber-900/40 rounded-xl overflow-hidden">
             <div className="p-6">

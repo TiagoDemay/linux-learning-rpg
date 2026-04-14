@@ -238,11 +238,15 @@ export const appRouter = router({
 
   professor: router({
     /** Lista alunos do torneio ativo (ou todos se sem torneio) — exclusivo para admin */
-    getStudents: protectedProcedure.query(async ({ ctx }) => {
+    getStudents: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(500).default(100), offset: z.number().min(0).default(0) }).optional())
+      .query(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
       }
-      const rows = await getStudentsByTournament();
+      const limit = input?.limit ?? 100;
+      const offset = input?.offset ?? 0;
+      const rows = await getStudentsByTournament(limit, offset);
       return rows.map((r, idx) => ({
         position: idx + 1,
         userId: r.userId ?? null,
@@ -272,6 +276,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
         }
+        await logSecurityEvent(ctx.user.id, "ADMIN_RESET_GAME", { tournamentName: input.tournamentName, adminId: ctx.user.id, adminName: ctx.user.name });
         const tournamentId = await resetAllProgress(input.tournamentName);
         // Atualiza o torneio ativo com o novo nome
         await setActiveTournament(input.tournamentName);
@@ -370,22 +375,23 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Deleta um usuário e seu progresso — exclusivo para admin */
+     /** Deleta um usuário e seu progresso — exclusivo para admin */
     deleteUser: protectedProcedure
       .input(z.object({ userId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível deletar o próprio usuário." });
+        await logSecurityEvent(ctx.user.id, "ADMIN_DELETE_USER", { targetUserId: input.userId, adminId: ctx.user.id, adminName: ctx.user.name });
         await deleteUser(input.userId);
         return { success: true };
       }),
-
     /** Bloqueia ou desbloqueia um usuário — exclusivo para admin */
     setUserBlocked: protectedProcedure
       .input(z.object({ userId: z.number(), blocked: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível bloquear o próprio usuário." });
+        await logSecurityEvent(ctx.user.id, input.blocked ? "ADMIN_BLOCK_USER" : "ADMIN_UNBLOCK_USER", { targetUserId: input.userId, adminId: ctx.user.id, adminName: ctx.user.name });
         await setUserBlocked(input.userId, input.blocked);
         return { success: true };
       }),
@@ -404,13 +410,14 @@ export const appRouter = router({
     /** Retorna os eventos de segurança mais recentes — exclusivo para admin */
     getSecurityEvents: protectedProcedure
       .input(z.object({
-        limit: z.number().min(1).max(500).default(200),
+        limit: z.number().min(1).max(500).default(50),
+        offset: z.number().min(0).default(0),
         userId: z.number().optional(),
         type: z.string().optional(),
       }).optional())
       .query(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
-        return getSecurityEvents(input?.limit ?? 200, input?.userId, input?.type);
+        return getSecurityEvents(input?.limit ?? 50, input?.userId, input?.type, input?.offset ?? 0);
       }),
   }),
 

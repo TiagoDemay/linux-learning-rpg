@@ -113,7 +113,7 @@ export async function logSecurityEvent(userId: number, type: string, details: Re
 }
 
 /** Retorna os eventos de segurança mais recentes — para o painel do professor */
-export async function getSecurityEvents(limit = 200, filterUserId?: number, filterType?: string) {
+export async function getSecurityEvents(limit = 50, filterUserId?: number, filterType?: string, offset = 0) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [];
@@ -132,9 +132,9 @@ export async function getSecurityEvents(limit = 200, filterUserId?: number, filt
     .from(securityEvents)
     .leftJoin(users, eq(users.id, securityEvents.userId));
   if (conditions.length > 0) {
-    return query.where(conditions.length === 1 ? conditions[0] : and(...conditions)).orderBy(desc(securityEvents.createdAt)).limit(limit);
+    return query.where(conditions.length === 1 ? conditions[0] : and(...conditions)).orderBy(desc(securityEvents.createdAt)).limit(limit).offset(offset);
   }
-  return query.orderBy(desc(securityEvents.createdAt)).limit(limit);
+  return query.orderBy(desc(securityEvents.createdAt)).limit(limit).offset(offset);
 }
 
 /** Retorna todos os alunos com progresso completo — para o painel do professor */
@@ -428,12 +428,10 @@ export async function getTopPlayers(limit = 20) {
 }
 
 /** Retorna alunos filtrados pelos participantes do torneio ativo (para o painel do professor) */
-export async function getStudentsByTournament() {
+export async function getStudentsByTournament(limit = 100, offset = 0) {
   const db = await getDb();
   if (!db) return [];
-
   const participantIds = await getActiveTournamentParticipantIds();
-
   const selectFields = {
     userId: users.id,
     coins: userProgress.coins,
@@ -449,25 +447,24 @@ export async function getStudentsByTournament() {
     role: users.role,
     blocked: (users as any).blocked,
   };
-
   const baseQuery = db
     .select(selectFields)
     .from(users)
     .leftJoin(userProgress, eq(userProgress.userId, users.id));
-
   if (participantIds && participantIds.length > 0) {
     return db
       .select(selectFields)
       .from(users)
       .leftJoin(userProgress, eq(userProgress.userId, users.id))
       .where(inArray(users.id, participantIds))
-      .orderBy(desc(userProgress.coins));
+      .orderBy(desc(userProgress.coins))
+      .limit(limit)
+      .offset(offset);
   } else if (participantIds && participantIds.length === 0) {
     return [];
   }
-
-  // Sem torneio: retornar todos
-  return baseQuery.orderBy(desc(userProgress.coins));
+  // Sem torneio: retornar todos com paginação
+  return baseQuery.orderBy(desc(userProgress.coins)).limit(limit).offset(offset);
 }
 
 /** Bloqueia ou desbloqueia um usuário */

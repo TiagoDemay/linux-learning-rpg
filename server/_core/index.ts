@@ -143,10 +143,36 @@ async function startServer() {
     message: { error: "Limite de compras atingido. Aguarde 1 minuto." },
   });
 
+  // Ações destrutivas do professor: limites conservadores para prevenir abuso operacional
+  const adminDeleteLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de deleções atingido. Aguarde 1 minuto." },
+  });
+  const adminBlockLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de bloqueios atingido. Aguarde 1 minuto." },
+  });
+  const adminResetLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Limite de resets atingido. Aguarde 1 minuto." },
+  });
+
   app.use("/api/trpc", generalLimiter);
   app.use("/api/trpc/progress.save", saveLimiter);
   app.use("/api/trpc/challenge.submit", submitLimiter);
   app.use("/api/trpc/shop.buy", shopLimiter);
+  app.use("/api/trpc/professor.deleteUser", adminDeleteLimiter);
+  app.use("/api/trpc/professor.setUserBlocked", adminBlockLimiter);
+  app.use("/api/trpc/professor.resetGame", adminResetLimiter);
 
   const oauthCallbackLimiter = rateLimit({
     windowMs: 60 * 1000,

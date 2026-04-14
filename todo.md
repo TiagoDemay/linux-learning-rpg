@@ -231,3 +231,13 @@
 - [x] Filtro por tipo de evento e por nome de usuário
 - [x] Auto-refresh a cada 30 segundos
 - [x] Badge com contagem de eventos recentes no tab
+
+## Melhorias de Segurança e Performance (Professor)
+- [x] Paginação em getStudents (db.ts + routers.ts + ProfessorPanel)
+- [x] Paginação em getSecurityEvents (db.ts + routers.ts + ProfessorPanel)
+- [x] Rate limiting em deleteUser (10/min por admin)
+- [x] Rate limiting em setUserBlocked (20/min por admin)
+- [x] Rate limiting em resetAllProgress (5/min por admin)
+- [x] Trilha de auditoria: logSecurityEvent em deleteUser
+- [x] Trilha de auditoria: logSecurityEvent em setUserBlocked
+- [x] Trilha de auditoria: logSecurityEvent em resetAllProgress
