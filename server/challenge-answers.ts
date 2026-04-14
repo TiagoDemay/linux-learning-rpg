@@ -30,7 +30,8 @@ export const CHALLENGE_ANSWERS: ChallengeAnswer[] = [
   // Desafio IV — echo ... > mensagem.txt + cat mensagem.txt
   { levelId: "floresta-stallman", challengeIndex: 3, reward: 12, requiredPatterns: [/^echo\s+.+>.*mensagem\.txt/, /^cat\s+mensagem\.txt/] },
   // Desafio V — cp mensagem.txt backup.txt + mv rascunho.txt notas.txt
-  { levelId: "floresta-stallman", challengeIndex: 4, reward: 15, requiredPatterns: [/^cp\s+mensagem\.txt\s+backup\.txt/, /^mv\s+rascunho\.txt\s+notas\.txt/] },
+  // Aceita caminhos relativos (ex: cp ../mensagem.txt backup.txt) e diretos
+  { levelId: "floresta-stallman", challengeIndex: 4, reward: 15, requiredPatterns: [/^cp\s+.*mensagem\.txt.*backup\.txt|^cp\s+.*backup\.txt/, /^mv\s+.*rascunho\.txt.*notas\.txt|^mv\s+.*notas\.txt/] },
   // Desafio VI — find + rm backup.txt
   { levelId: "floresta-stallman", challengeIndex: 5, reward: 18, requiredPatterns: [/^find\s+/, /^rm\s+backup\.txt/] },
   // Desafio VII — echo ... > diario.txt + grep
@@ -39,8 +40,9 @@ export const CHALLENGE_ANSWERS: ChallengeAnswer[] = [
   { levelId: "floresta-stallman", challengeIndex: 7, reward: 22, requiredPatterns: [/^touch\s+feitico\.sh/, /^chmod\s+\+x\s+feitico\.sh/] },
   // Desafio IX — ps + top
   { levelId: "floresta-stallman", challengeIndex: 8, reward: 25, requiredPatterns: [/^ps/, /^top/] },
-  // Desafio X — sudo apt list + sudo apt update
-  { levelId: "floresta-stallman", challengeIndex: 9, reward: 30, requiredPatterns: [/^sudo\s+apt\s+list|^apt\s+list/, /^sudo\s+apt\s+update|^apt\s+update/] },
+  // Desafio X — sudo + apt (qualquer combinação: apt list, apt update, sudo apt list, sudo apt update)
+  // O client verifica usedSudo && usedApt — servidor aceita qualquer um dos comandos sudo/apt
+  { levelId: "floresta-stallman", challengeIndex: 9, reward: 30, requiredPatterns: [/^sudo\s+apt|^apt\s+list|^apt\s+update/] },
 
   // ── TUNDRA DO SLACKWARE ──────────────────────────────────────────────────
   // Desafio I — hostname + uname -a
