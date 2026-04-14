@@ -581,7 +581,7 @@ export default function ProfessorPanel() {
                       student.completedCount * totalChallengesPerLevel;
 
                     return (
-                      <Fragment key={student.name ?? i}>
+                      <Fragment key={student.userId ?? i}>
                         <tr
                           className={`border-b border-amber-900/20 transition-colors ${
                             isExpanded

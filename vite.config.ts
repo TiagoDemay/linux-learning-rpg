@@ -18,6 +18,15 @@ const TRIM_TARGET_BYTES = Math.floor(MAX_LOG_SIZE_BYTES * 0.6); // Trim to 60% t
 
 type LogSource = "browserConsole" | "networkRequests" | "sessionReplay";
 
+function isLocalAddress(remoteAddress: string | undefined): boolean {
+  if (!remoteAddress) return false;
+  return (
+    remoteAddress === "127.0.0.1" ||
+    remoteAddress === "::1" ||
+    remoteAddress === "::ffff:127.0.0.1"
+  );
+}
+
 function ensureLogDir() {
   if (!fs.existsSync(LOG_DIR)) {
     fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -102,6 +111,21 @@ function vitePluginManusDebugCollector(): Plugin {
       server.middlewares.use("/__manus__/logs", (req, res, next) => {
         if (req.method !== "POST") {
           return next();
+        }
+
+        const debugToken = process.env.MANUS_DEBUG_TOKEN;
+        const reqToken = req.headers["x-manus-debug-token"];
+        const remoteAddress = req.socket.remoteAddress;
+        const isTrustedLocal = isLocalAddress(remoteAddress);
+        const hasValidToken =
+          typeof debugToken === "string" &&
+          debugToken.length > 0 &&
+          reqToken === debugToken;
+
+        if (!isTrustedLocal && !hasValidToken) {
+          res.writeHead(403, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: false, error: "Forbidden" }));
+          return;
         }
 
         const handlePayload = (payload: any) => {

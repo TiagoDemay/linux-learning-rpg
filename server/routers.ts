@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
+import { parse as parseCookieHeader } from "cookie";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
+import { decodeJwt } from "jose";
 import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant, setAllParticipants, deleteTournamentFromHistory, deleteUser, setUserBlocked, getTournamentEventTimestamp, getAllUsersForAdmin, logSecurityEvent, getSecurityEvents } from "./db";
 import { validateChallengeAnswer } from "./challenge-answers";
+import { revokeSessionToken } from "./_core/sessionRevocation";
 
 // ── Security constants ────────────────────────────────────────────────────────
 // Moedas máximas ganháveis legitimamente:
@@ -32,6 +35,28 @@ const VALID_LEVEL_IDS = new Set([
   "reino-torvalds", "cidade-gnu", "planicies-redhat", "deserto-debian",
   "ilhas-canonical", "vale-arch",
 ]);
+const CHALLENGE_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
+const CHALLENGE_MAX_ATTEMPTS_PER_WINDOW = 12;
+const challengeAttemptTracker = new Map<string, number[]>();
+
+function enforceChallengeAttemptLimit(userId: number, levelId: string, challengeIndex: number) {
+  const now = Date.now();
+  const key = `${userId}:${levelId}:${challengeIndex}`;
+  const prev = challengeAttemptTracker.get(key) ?? [];
+  const recent = prev.filter(ts => now - ts <= CHALLENGE_ATTEMPT_WINDOW_MS);
+  if (recent.length >= CHALLENGE_MAX_ATTEMPTS_PER_WINDOW) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Muitas tentativas para este desafio. Aguarde alguns minutos.",
+    });
+  }
+  recent.push(now);
+  challengeAttemptTracker.set(key, recent);
+}
+
+async function logAdminAction(adminUserId: number, action: string, details: Record<string, unknown>) {
+  await logSecurityEvent(adminUserId, `admin_${action}`, details);
+}
 
 /**
  * Valida o progresso recebido do cliente contra os limites do jogo.
@@ -136,7 +161,20 @@ export const appRouter = router({
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: protectedProcedure.mutation(({ ctx }) => {
+      const parsedCookies = parseCookieHeader(ctx.req.headers.cookie ?? "");
+      const sessionToken = parsedCookies[COOKIE_NAME];
+      if (sessionToken) {
+        try {
+          const decoded = decodeJwt(sessionToken);
+          const exp = typeof decoded.exp === "number" ? decoded.exp : undefined;
+          if (exp) {
+            revokeSessionToken(sessionToken, exp * 1000);
+          }
+        } catch {
+          // ignore malformed token on logout
+        }
+      }
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
@@ -242,6 +280,7 @@ export const appRouter = router({
         const tournamentId = await resetAllProgress(input.tournamentName);
         // Atualiza o torneio ativo com o novo nome
         await setActiveTournament(input.tournamentName);
+        await logAdminAction(ctx.user.id, "reset_game", { tournamentName: input.tournamentName, tournamentId });
         return { success: true, tournamentId };
       }),
 
@@ -253,6 +292,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
         }
         const tournament = await createTournament(input.name);
+        await logAdminAction(ctx.user.id, "create_tournament", { name: input.name, tournamentId: tournament.id });
         return { success: true, tournament };
       }),
 
@@ -264,6 +304,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao professor." });
         }
         await renameTournament(input.name);
+        await logAdminAction(ctx.user.id, "rename_tournament", { name: input.name });
         return { success: true };
       }),
 
@@ -287,6 +328,7 @@ export const appRouter = router({
         } else {
           await removeParticipant(input.userId);
         }
+        await logAdminAction(ctx.user.id, "toggle_participant", { userId: input.userId, add: input.add });
         return { success: true };
       }),
 
@@ -325,6 +367,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         await deleteTournamentFromHistory(input.tournamentId);
+        await logAdminAction(ctx.user.id, "delete_tournament_history", { tournamentId: input.tournamentId });
         return { success: true };
       }),
 
@@ -334,6 +377,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         await setAllParticipants(input.add);
+        await logAdminAction(ctx.user.id, "set_all_participants", { add: input.add });
         return { success: true };
       }),
 
@@ -344,6 +388,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível deletar o próprio usuário." });
         await deleteUser(input.userId);
+        await logAdminAction(ctx.user.id, "delete_user", { userId: input.userId });
         return { success: true };
       }),
 
@@ -354,6 +399,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível bloquear o próprio usuário." });
         await setUserBlocked(input.userId, input.blocked);
+        await logAdminAction(ctx.user.id, "set_user_blocked", { userId: input.userId, blocked: input.blocked });
         return { success: true };
       }),
 
@@ -392,6 +438,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        enforceChallengeAttemptLimit(ctx.user.id, input.levelId, input.challengeIndex);
         // Valida se o levelId é legítimo
         if (!VALID_LEVEL_IDS.has(input.levelId)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Território inválido." });
