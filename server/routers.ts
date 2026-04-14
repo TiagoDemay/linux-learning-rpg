@@ -36,7 +36,10 @@ const VALID_LEVEL_IDS = new Set([
   "ilhas-canonical", "vale-arch",
 ]);
 const CHALLENGE_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
-const CHALLENGE_MAX_ATTEMPTS_PER_WINDOW = 12;
+// O terminal chama challenge.submit a cada comando digitado (para verificar se o desafio foi completado).
+// Um aluno pode digitar muitos comandos explorando o terminal antes de completar o desafio.
+// 100 tentativas por 10 minutos é suficiente para uso normal sem abrir espaço para brute-force.
+const CHALLENGE_MAX_ATTEMPTS_PER_WINDOW = 100;
 const challengeAttemptTracker = new Map<string, number[]>();
 
 function enforceChallengeAttemptLimit(userId: number, levelId: string, challengeIndex: number) {

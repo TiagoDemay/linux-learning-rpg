@@ -125,10 +125,11 @@ async function startServer() {
     message: { error: "Limite de salvamentos atingido. Aguarde 1 minuto." },
   });
 
-  // Estrito: 20 req/min para challenge.submit (anti-brute-force de respostas)
+  // O terminal chama challenge.submit a cada comando digitado — limite generoso para não bloquear uso normal.
+  // Brute-force real é bloqueado pelo enforceChallengeAttemptLimit no routers.ts (100/10min por desafio).
   const submitLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 20,
+    max: 120,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Limite de tentativas atingido. Aguarde 1 minuto." },

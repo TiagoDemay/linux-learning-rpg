@@ -286,8 +286,17 @@ export default function Terminal({
             onTaskComplete(currentLevel, 0);
           }
         }, 400);
-      } catch (err) {
-        // Erro de rede ou servidor — não travar o terminal, apenas logar
+      } catch (err: unknown) {
+        // Erro de rede ou servidor — não travar o terminal
+        const trpcErr = err as { data?: { code?: string }; shape?: { data?: { code?: string } } };
+        const code = trpcErr?.data?.code ?? trpcErr?.shape?.data?.code;
+        // TOO_MANY_REQUESTS: limite de tentativas atingido — ignorar silenciosamente
+        // (o aluno ainda não completou o desafio, não é um erro de usabilidade)
+        if (code === "TOO_MANY_REQUESTS") {
+          console.warn("[Terminal] Rate limit atingido para este desafio.");
+          return;
+        }
+        // Outros erros (rede, servidor) — logar e mostrar aviso discreto
         console.error("[Terminal] Falha ao validar desafio no servidor:", err);
         addLine("error", "⚠️ Erro ao verificar desafio. Tente novamente.");
       } finally {

@@ -241,3 +241,9 @@
 - [x] Trilha de auditoria: logSecurityEvent em deleteUser
 - [x] Trilha de auditoria: logSecurityEvent em setUserBlocked
 - [x] Trilha de auditoria: logSecurityEvent em resetAllProgress
+
+## Bug Crítico: Terminal mostra erro em todo comando
+- [x] Causa: CHALLENGE_MAX_ATTEMPTS_PER_WINDOW=12 era muito baixo (terminal chama submit a cada comando)
+- [x] Aumentar CHALLENGE_MAX_ATTEMPTS_PER_WINDOW para 100 (100 tentativas por 10 minutos por desafio)
+- [x] Aumentar rate limit HTTP de challenge.submit para 120/min
+- [x] Corrigir catch do Terminal.tsx: ignorar TOO_MANY_REQUESTS silenciosamente (não exibir erro ao aluno)
