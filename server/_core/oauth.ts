@@ -2,7 +2,7 @@ import { BLOCKED_ERR_MSG, COOKIE_NAME, OAUTH_STATE_COOKIE_NAME, ONE_YEAR_MS } fr
 import type { Express, Request, Response } from "express";
 import { parse as parseCookieHeader } from "cookie";
 import * as db from "../db";
-import { getSessionCookieOptions } from "./cookies";
+import { getSessionCookieOptions, getNonceCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 
 function getQueryParam(req: Request, key: string): string | undefined {
@@ -23,23 +23,40 @@ export function registerOAuthRoutes(app: Express) {
     try {
       const parsedCookies = parseCookieHeader(req.headers.cookie ?? "");
       const stateNonceCookie = parsedCookies[OAUTH_STATE_COOKIE_NAME];
+
+      // Log de diagnóstico (remover em produção se necessário)
+      console.log("[OAuth] Callback recebido", {
+        hasCookieHeader: !!req.headers.cookie,
+        cookieNames: Object.keys(parsedCookies),
+        hasNonceCookie: !!stateNonceCookie,
+        proto: req.protocol,
+        forwardedProto: req.headers["x-forwarded-proto"],
+      });
+
       let parsedState: { redirectUri: string; nonce: string };
       try {
         parsedState = sdk.parseOAuthState(state);
       } catch {
-        res.clearCookie(OAUTH_STATE_COOKIE_NAME, { path: "/" });
+        const nonceOpts = getNonceCookieOptions(req);
+        res.clearCookie(OAUTH_STATE_COOKIE_NAME, { path: "/", sameSite: nonceOpts.sameSite, secure: nonceOpts.secure });
         res.status(400).json({ error: "invalid oauth state" });
         return;
       }
+
       const nonceMatches =
         typeof stateNonceCookie === "string" &&
         stateNonceCookie.length > 0 &&
         parsedState.nonce === stateNonceCookie;
 
       // one-time use (best effort even on invalid attempts)
-      res.clearCookie(OAUTH_STATE_COOKIE_NAME, { path: "/" });
+      const nonceOpts = getNonceCookieOptions(req);
+      res.clearCookie(OAUTH_STATE_COOKIE_NAME, { path: "/", sameSite: nonceOpts.sameSite, secure: nonceOpts.secure });
 
       if (!nonceMatches) {
+        console.warn("[OAuth] Nonce mismatch", {
+          cookieNonce: stateNonceCookie ? stateNonceCookie.substring(0, 8) + "..." : "(vazio)",
+          stateNonce: parsedState.nonce ? parsedState.nonce.substring(0, 8) + "..." : "(vazio)",
+        });
         res.status(400).json({ error: "invalid oauth state" });
         return;
       }
