@@ -282,3 +282,9 @@
 - [x] Passo 3: Overlay de carregamento melhorado com etapas visuais e indicador de sessão restaurada
 - [ ] Testar boot no browser e confirmar que o terminal abre em <15s (v3)
 - [ ] Testar os 10 desafios da Floresta de Stallman no terminal emulado
+
+## Restauração do Terminal VFS (Desafios Funcionando)
+- [x] Diagnosticar causa raíz: V86Terminal capturava teclas individuais via xterm.onData, não comandos completos — comandos chegavam errados/vazios ao challenge.submit
+- [x] Restaurar Terminal.tsx original (VFS simulado) do commit 4732a3e — terminal HTML com executeCommand + simulateExtraCommands
+- [x] Verificar TypeScript sem erros após restauração
+- [x] 126 testes passando após restauração
