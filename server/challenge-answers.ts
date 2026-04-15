@@ -125,8 +125,9 @@ export const CHALLENGE_ANSWERS: ChallengeAnswer[] = [
   { levelId: "reino-torvalds", challengeIndex: 5, reward: 26, requiredPatterns: [/^git\s+branch\s+desenvolvimento/, /^git\s+checkout\s+desenvolvimento/] },
   // Desafio VII — echo >> README.md + git diff
   { levelId: "reino-torvalds", challengeIndex: 6, reward: 28, requiredPatterns: [/^echo\s+.+>>.*README\.md/, /^git\s+diff/] },
-  // Desafio VIII — git checkout main + git merge desenvolvimento
-  { levelId: "reino-torvalds", challengeIndex: 7, reward: 30, requiredPatterns: [/^git\s+checkout\s+main/, /^git\s+merge\s+desenvolvimento/] },
+  // Desafio VIII — git checkout main/master + git merge desenvolvimento
+  // Aceita 'main' ou 'master' (branch padrão varia por versão do git)
+  { levelId: "reino-torvalds", challengeIndex: 7, reward: 30, requiredPatterns: [/^git\s+checkout\s+(main|master)/, /^git\s+merge\s+desenvolvimento/] },
   // Desafio IX — git clone --help
   { levelId: "reino-torvalds", challengeIndex: 8, reward: 32, requiredPatterns: [/^git\s+clone/] },
   // Desafio X — git config user.name + git config user.email

@@ -268,3 +268,17 @@
 - [x] Upload nova imagem para CDN: alpine-disk-v2.img_adaa3c25.gz (20MB)
 - [x] Atualizar V86Terminal.tsx com init=/init-game.sh, barra de progresso melhorada e detecção de prompt
 - [ ] Testar boot no browser e confirmar que o terminal abre em <15s
+
+## Passos 1-2-3: Boot v86 + Desafios + Persistência de Sessão
+- [x] Passo 1: Criar imagem Alpine v3 com stubs para apt, dpkg, systemctl, journalctl, rpm, yum, dnf, pacman, snap, lsb_release, ss, rsync, ufw, reflector, yay
+- [x] Passo 1: Adicionar .gitconfig com defaultBranch=main e user.name=aventureiro
+- [x] Passo 1: Corrigir init-game.sh para usar /bin/sh e montar /proc, /sys, /dev corretamente
+- [x] Passo 1: Corrigir .bashrc com banner, PS1 colorido e aliases
+- [x] Passo 1: Upload imagem v3-final para CDN
+- [x] Passo 2: Corrigir challenge-answers.ts — desafio VIII do Reino de Torvalds aceita 'main' ou 'master'
+- [x] Passo 3: Implementar persistência de sessão v86 com IndexedDB (salva a cada 30s, restaura na próxima abertura)
+- [x] Passo 3: Adicionar botão "Nova sessão" para limpar estado salvo
+- [x] Passo 3: Passar levelId para V86Terminal no Terminal.tsx (chave de sessão por nível)
+- [x] Passo 3: Overlay de carregamento melhorado com etapas visuais e indicador de sessão restaurada
+- [ ] Testar boot no browser e confirmar que o terminal abre em <15s (v3)
+- [ ] Testar os 10 desafios da Floresta de Stallman no terminal emulado

@@ -437,6 +437,7 @@ export default function Terminal({
           ))}
 
           <V86Terminal
+            levelId={currentLevel}
             onCommand={(cmd, history) => {
               void checkChallengeCompletion(cmd, vfs, history);
             }}
