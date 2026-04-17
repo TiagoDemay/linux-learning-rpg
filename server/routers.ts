@@ -1,14 +1,11 @@
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
-import { parse as parseCookieHeader } from "cookie";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { decodeJwt } from "jose";
 import { getUserProgress, upsertUserProgress, getTopPlayers, getAllStudents, getStudentsByTournament, resetAllProgress, getTournamentHistory, getActiveTournament, setActiveTournament, createTournament, renameTournament, getAllUsersWithParticipation, addParticipant, removeParticipant, setAllParticipants, deleteTournamentFromHistory, deleteUser, setUserBlocked, getTournamentEventTimestamp, getAllUsersForAdmin, logSecurityEvent, getSecurityEvents } from "./db";
 import { validateChallengeAnswer } from "./challenge-answers";
-import { revokeSessionToken } from "./_core/sessionRevocation";
 
 // ── Security constants ────────────────────────────────────────────────────────
 // Moedas máximas ganháveis legitimamente:
@@ -161,18 +158,6 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
-      const parsedCookies = parseCookieHeader(ctx.req.headers.cookie ?? "");
-      const sessionToken = parsedCookies[COOKIE_NAME];
-      if (sessionToken) {
-        try {
-          const decoded = decodeJwt(sessionToken);
-          const exp = typeof decoded.exp === "number" ? decoded.exp : undefined;
-          const expiresAtMs = exp ? exp * 1000 : Date.now() + 60 * 60 * 1000;
-          revokeSessionToken(sessionToken, expiresAtMs);
-        } catch {
-          revokeSessionToken(sessionToken, Date.now() + 60 * 60 * 1000);
-        }
-      }
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
@@ -439,7 +424,6 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        enforceChallengeAttemptLimit(ctx.user.id, input.levelId, input.challengeIndex);
         // Valida se o levelId é legítimo
         if (!VALID_LEVEL_IDS.has(input.levelId)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Território inválido." });
