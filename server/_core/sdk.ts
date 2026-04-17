@@ -7,7 +7,6 @@ import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
-import { isSessionRevoked } from "./sessionRevocation";
 import type {
   ExchangeTokenRequest,
   ExchangeTokenResponse,
@@ -25,11 +24,6 @@ export type SessionPayload = {
   name: string;
 };
 
-type OAuthStatePayload = {
-  redirectUri: string;
-  nonce: string;
-};
-
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
@@ -44,35 +38,20 @@ class OAuthService {
     }
   }
 
-  parseOAuthState(state: string): OAuthStatePayload {
-    try {
-      const decoded = atob(state);
-      const parsed = JSON.parse(decoded) as Partial<OAuthStatePayload>;
-      if (
-        !isNonEmptyString(parsed.redirectUri) ||
-        !isNonEmptyString(parsed.nonce)
-      ) {
-        throw new Error("invalid oauth state payload");
-      }
-      return {
-        redirectUri: parsed.redirectUri,
-        nonce: parsed.nonce,
-      };
-    } catch (error) {
-      throw ForbiddenError("Invalid OAuth state");
-    }
+  private decodeState(state: string): string {
+    const redirectUri = atob(state);
+    return redirectUri;
   }
 
   async getTokenByCode(
     code: string,
     state: string
   ): Promise<ExchangeTokenResponse> {
-    const parsedState = this.parseOAuthState(state);
     const payload: ExchangeTokenRequest = {
       clientId: ENV.appId,
       grantType: "authorization_code",
       code,
-      redirectUri: parsedState.redirectUri,
+      redirectUri: this.decodeState(state),
     };
 
     const { data } = await this.client.post<ExchangeTokenResponse>(
@@ -144,10 +123,6 @@ class SDKServer {
     state: string
   ): Promise<ExchangeTokenResponse> {
     return this.oauthService.getTokenByCode(code, state);
-  }
-
-  parseOAuthState(state: string): OAuthStatePayload {
-    return this.oauthService.parseOAuthState(state);
   }
 
   /**
@@ -231,10 +206,6 @@ class SDKServer {
     }
 
     try {
-      if (isSessionRevoked(cookieValue)) {
-        console.warn("[Auth] Session token has been revoked");
-        return null;
-      }
       const secretKey = this.getSessionSecret();
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
@@ -247,11 +218,6 @@ class SDKServer {
         !isNonEmptyString(name)
       ) {
         console.warn("[Auth] Session payload missing required fields");
-        return null;
-      }
-
-      if (appId !== ENV.appId) {
-        console.warn("[Auth] Session appId mismatch");
         return null;
       }
 

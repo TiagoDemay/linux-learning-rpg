@@ -140,7 +140,7 @@ export default function ProfessorPanel() {
     { enabled: !!user && user.role === "admin" }
   );
 
-  const [activeTab, setActiveTab] = useState<"students" | "history" | "tournament" | "security">("students");
+  const [activeTab, setActiveTab] = useState<"students" | "history" | "tournament" | "audit">("students");
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
 
   // ── Auditoria de Segurança ──
@@ -345,9 +345,9 @@ export default function ProfessorPanel() {
             🏆 Histórico {tournaments && tournaments.length > 0 ? `(${tournaments.length})` : ""}
           </button>
           <button
-            onClick={() => { setActiveTab("security"); refetchAudit(); }}
+            onClick={() => { setActiveTab("audit"); refetchAudit(); }}
             className={`px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-all ${
-              activeTab === "security"
+              activeTab === "audit"
                 ? "bg-[#2c1a00] border border-b-0 border-amber-700/60 text-amber-300"
                 : "text-amber-600 hover:text-amber-400"
             }`}
